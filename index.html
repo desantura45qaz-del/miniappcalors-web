@@ -2,9 +2,821 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Тест Devickaya</title>
+  <title>Калькулятор калорий</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #000000);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app {
+      width: 94%;
+      max-width: 420px;
+      background: var(--tg-theme-secondary-bg-color, #f3f3f3);
+      border-radius: 18px;
+      padding: 14px 14px 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .subtitle {
+      margin: 0 0 6px;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    .subtitle.small { margin-top: 4px; }
+
+    .user {
+      font-size: 13px;
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0 10px;
+      font-size: 13px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: var(--tg-theme-button-color, #2a9df4);
+      color: var(--tg-theme-button-text-color, #ffffff);
+      border-color: transparent;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    label {
+      margin-bottom: 4px;
+      opacity: 0.9;
+    }
+
+    input, select {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      outline: none;
+      font-size: 14px;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: inherit;
+      box-sizing: border-box;
+    }
+
+    input::placeholder { opacity: 0.5; }
+
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.03);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .result strong { font-size: 14px; }
+
+    .error {
+      color: #ff4b4b;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    button.calc-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      background: var(--tg-theme-button-color, #2a9df4);
+      color: var(--tg-theme-button-text-color, #ffffff);
+    }
+
+    button.calc-btn.secondary {
+      margin-top: 6px;
+      background: transparent;
+      color: inherit;
+      border: 1px solid rgba(0,0,0,0.12);
+    }
+
+    .profile-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .link-btn {
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      font-size: 11px;
+      text-decoration: underline;
+      opacity: 0.7;
+      cursor: pointer;
+    }
+
+    .recs-note {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .lock {
+      font-size: 13px;
+      opacity: 0.8;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.03);
+      margin-top: 6px;
+    }
+
+    .story-preview {
+      margin-top: 8px;
+      border-radius: 16px;
+      width: 100%;
+      max-height: 320px;
+      object-fit: cover;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Приложение работает 🎉</h1>
+  <div class="app">
+    <h1>Калькулятор калорий</h1>
+    <p class="subtitle">Мини-приложение Devickaya</p>
+    <p class="user" id="user-info">Определяю пользователя…</p>
+
+    <div class="tabs">
+      <button class="tab active" data-screen="daily">Суточная норма</button>
+      <button class="tab" data-screen="meal">Блюдо</button>
+      <button class="tab" data-screen="recs">Рекомендации</button>
+    </div>
+
+    <!-- ЭКРАН 1: суточная норма -->
+    <div class="screen active" id="screen-daily">
+      <div class="field">
+        <label for="user-type">Кто вы?</label>
+        <select id="user-type">
+          <option value="subscriber" selected>Просто подписчик</option>
+          <option value="patient">Пациент</option>
+        </select>
+        <small style="opacity:0.6;font-size:11px;">
+          Для пациентов все рекомендации используются в рамках вашей схемы лечения.
+        </small>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="gender">Пол</label>
+          <select id="gender">
+            <option value="female">Женский</option>
+            <option value="male">Мужской</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="age">Возраст</label>
+          <input id="age" type="number" min="10" max="100" placeholder="лет" />
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="height">Рост</label>
+          <input id="height" type="number" min="120" max="230" placeholder="см" />
+        </div>
+        <div class="field">
+          <label for="weight">Вес</label>
+          <input id="weight" type="number" min="30" max="250" step="0.1" placeholder="кг" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="activity">Активность</label>
+        <select id="activity">
+          <option value="1.2">Минимальная (сидячая работа)</option>
+          <option value="1.375">Лёгкая (1–3 тренировки/нед)</option>
+          <option value="1.55">Средняя (3–5 тренировок/нед)</option>
+          <option value="1.725">Высокая (6–7 тренировок/нед)</option>
+          <option value="1.9">Очень высокая (спорт, тяжёлый труд)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="goal">Цель</label>
+        <select id="goal">
+          <option value="lose">Снижение веса</option>
+          <option value="maintain" selected>Поддержание веса</option>
+          <option value="gain">Набор веса</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="intensity">Интенсивность цели</label>
+        <select id="intensity">
+          <option value="10">Мягко (≈10%)</option>
+          <option value="15" selected>Стандартно (≈15%)</option>
+          <option value="20">Интенсивно (≈20%)</option>
+        </select>
+        <small style="opacity:0.6;font-size:11px;">
+          Для снижения это дефицит, для набора — профицит.
+        </small>
+      </div>
+
+      <div class="profile-actions">
+        <button class="link-btn" id="reset-profile">Сбросить сохранённый профиль</button>
+      </div>
+
+      <button class="calc-btn" id="calc-btn">Рассчитать калории</button>
+      <div id="error" class="error" style="display:none;"></div>
+
+      <div id="result" class="result" style="display:none;">
+        <strong>Ваши расчёты:</strong>
+        <div id="result-text"></div>
+      </div>
+
+      <div class="hint">
+        Это приблизительные значения и не заменяют очную консультацию врача.
+      </div>
+    </div>
+
+    <!-- ЭКРАН 2: блюдо -->
+    <div class="screen" id="screen-meal">
+      <p class="subtitle small">Быстрый расчёт по ккал на 100 г и весу порции.</p>
+
+      <div class="field">
+        <label for="meal-name">Блюдо</label>
+        <input id="meal-name" type="text" placeholder="Например: овсянка на молоке" />
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="meal-kcal100">Ккал на 100 г</label>
+          <input id="meal-kcal100" type="number" min="10" max="1200" placeholder="например, 120" />
+        </div>
+        <div class="field">
+          <label for="meal-weight">Вес порции, г</label>
+          <input id="meal-weight" type="number" min="10" max="2000" placeholder="например, 250" />
+        </div>
+      </div>
+
+      <button class="calc-btn secondary" id="meal-btn">Рассчитать блюдо</button>
+      <div id="meal-error" class="error" style="display:none;"></div>
+      <div id="meal-result" class="result" style="display:none;">
+        <strong>Калорийность блюда:</strong>
+        <div id="meal-result-text"></div>
+      </div>
+    </div>
+
+    <!-- ЭКРАН 3: рекомендации -->
+    <div class="screen" id="screen-recs">
+      <p class="subtitle small">
+        Рекомендации по воде, шагам и сну на основе вашего профиля и суточной калорийности.
+      </p>
+      <div id="recs-locked" class="lock" style="display:none;">
+        Эта секция доступна только <b>пациентам с активным тарифом</b> Devickaya.
+        Напишите мне в бот, чтобы подключить программу.
+      </div>
+
+      <div id="recs-content" style="display:none;">
+        <div class="result">
+          <strong>Ваши ориентиры на день:</strong>
+          <div id="recs-text"></div>
+        </div>
+
+        <p class="recs-note">
+          Важно: это общие рекомендации и они всегда адаптируются под ваш диагноз,
+          анализы и схему лечения. Окончательные решения — вместе с врачом.
+        </p>
+
+        <button class="calc-btn secondary" id="story-btn">
+          Сгенерировать карточку для сторис
+        </button>
+
+        <img id="story-preview" class="story-preview" style="display:none;" alt="Карточка для сторис" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    // --- пользователь + тариф ---
+    const userInfoEl = document.getElementById("user-info");
+    const user = tg?.initDataUnsafe?.user;
+
+    if (user) {
+      const name = user.username
+        ? "@" + user.username
+        : [user.first_name, user.last_name].filter(Boolean).join(" ");
+      userInfoEl.textContent = "Вы зашли как: " + name;
+    } else {
+      userInfoEl.textContent = "Пользователь не определён (открыто вне Telegram).";
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasSubscription =
+      urlParams.get("sub") === "1" ||
+      tg?.initDataUnsafe?.start_param === "patient_pro";
+
+    if (hasSubscription) {
+      userInfoEl.textContent += " • тариф активен";
+    }
+
+    // --- вкладки ---
+    const tabs = document.querySelectorAll(".tab");
+    const screens = {
+      daily: document.getElementById("screen-daily"),
+      meal: document.getElementById("screen-meal"),
+      recs: document.getElementById("screen-recs")
+    };
+
+    function switchScreen(id) {
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.screen === id));
+      Object.entries(screens).forEach(([key, el]) => {
+        el.classList.toggle("active", key === id);
+      });
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
+    });
+
+    // --- элементы профиля ---
+    const userTypeEl   = document.getElementById("user-type");
+    const genderEl     = document.getElementById("gender");
+    const ageEl        = document.getElementById("age");
+    const heightEl     = document.getElementById("height");
+    const weightEl     = document.getElementById("weight");
+    const activityEl   = document.getElementById("activity");
+    const goalEl       = document.getElementById("goal");
+    const intensityEl  = document.getElementById("intensity");
+    const resetProfileBtn = document.getElementById("reset-profile");
+
+    const calcBtn      = document.getElementById("calc-btn");
+    const errorEl      = document.getElementById("error");
+    const resultEl     = document.getElementById("result");
+    const resultTextEl = document.getElementById("result-text");
+
+    const mealNameEl   = document.getElementById("meal-name");
+    const mealKcal100El= document.getElementById("meal-kcal100");
+    const mealWeightEl = document.getElementById("meal-weight");
+    const mealBtn      = document.getElementById("meal-btn");
+    const mealErrorEl  = document.getElementById("meal-error");
+    const mealResultEl = document.getElementById("meal-result");
+    const mealResultTextEl = document.getElementById("meal-result-text");
+
+    const recsLockedEl   = document.getElementById("recs-locked");
+    const recsContentEl  = document.getElementById("recs-content");
+    const recsTextEl     = document.getElementById("recs-text");
+    const storyBtn       = document.getElementById("story-btn");
+    const storyPreview   = document.getElementById("story-preview");
+
+    function validateNumber(input, min, max) {
+      const v = Number(String(input.value).replace(",", "."));
+      if (!v || isNaN(v) || v < min || v > max) return null;
+      return v;
+    }
+
+    // --- profile localStorage ---
+    const PROFILE_KEY = "devickaya_calorie_profile_v2";
+
+    function saveProfile(profile) {
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }
+      catch (e) { console.warn("Cannot save profile", e); }
+    }
+
+    function loadProfile() {
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        if (p.userType) userTypeEl.value = p.userType;
+        if (p.gender) genderEl.value = p.gender;
+        if (p.age) ageEl.value = p.age;
+        if (p.height) heightEl.value = p.height;
+        if (p.weight) weightEl.value = p.weight;
+        if (p.activity) activityEl.value = p.activity;
+        if (p.goal) goalEl.value = p.goal;
+        if (p.intensity) intensityEl.value = p.intensity;
+        userInfoEl.textContent += " • профиль загружен";
+      } catch (e) {
+        console.warn("Cannot load profile", e);
+      }
+    }
+
+    function clearProfile() {
+      try { localStorage.removeItem(PROFILE_KEY); } catch (e) {}
+    }
+
+    loadProfile();
+
+    resetProfileBtn.addEventListener("click", () => {
+      clearProfile();
+      ageEl.value = "";
+      heightEl.value = "";
+      weightEl.value = "";
+      if (!userInfoEl.textContent.includes("профиль")) return;
+      userInfoEl.textContent = userInfoEl.textContent.replace(" • профиль загружен", "");
+    });
+
+    // --- MainButton общая логика ---
+    let mainAction = null;
+    if (tg) {
+      tg.MainButton.onClick(() => {
+        if (typeof mainAction === "function") mainAction();
+      });
+    }
+
+    // --- расчёт суточной нормы ---
+    let lastDailyData = null;
+    let lastRecsData  = null;
+
+    function calcDaily() {
+      errorEl.style.display = "none";
+      resultEl.style.display = "none";
+
+      const userType  = userTypeEl.value;
+      const gender    = genderEl.value;
+      const age       = validateNumber(ageEl, 10, 100);
+      const height    = validateNumber(heightEl, 120, 230);
+      const weight    = validateNumber(weightEl, 30, 250);
+      const activity  = Number(activityEl.value);
+      const goal      = goalEl.value;
+      const intensity = Number(intensityEl.value);
+
+      if (!age || !height || !weight) {
+        errorEl.textContent = "Пожалуйста, заполните возраст, рост и вес корректно.";
+        errorEl.style.display = "block";
+        return null;
+      }
+
+      let bmr;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
+
+      const maintenance = bmr * activity;
+      let target = maintenance;
+      let intensitySign = 0;
+
+      if (goal === "lose") intensitySign = -1;
+      else if (goal === "gain") intensitySign = 1;
+
+      if (intensitySign !== 0) {
+        target = maintenance * (1 + intensitySign * (intensity / 100));
+      }
+
+      const roundedMaintenance = Math.round(maintenance);
+      const roundedTarget      = Math.round(target);
+
+      const protein = Math.round((target * 0.3) / 4);
+      const fats    = Math.round((target * 0.3) / 9);
+      const carbs   = Math.round((target * 0.4) / 4);
+
+      const breakfast = Math.round(target * 0.25);
+      const lunch     = Math.round(target * 0.35);
+      const dinner    = Math.round(target * 0.30);
+      const snacks    = Math.round(target * 0.10);
+
+      const lines = [
+        `Тип: ${userType === "patient" ? "пациент" : "подписчик"}${hasSubscription && userType === "patient" ? " (тариф активен)" : ""}`,
+        `Базовый обмен (BMR): ~ ${Math.round(bmr)} ккал/день`,
+        `Поддержание веса: ~ ${roundedMaintenance} ккал/день`,
+        goal === "maintain"
+          ? `Рекомендуемая калорийность: ~ ${roundedTarget} ккал/день (поддержание)`
+          : `Рекомендуемая калорийность: ~ ${roundedTarget} ккал/день (${goal === "lose" ? "дефицит" : "профицит"} ${intensity}%)`,
+        "",
+        `Ориентировочные макросы:`,
+        `• Белки: ~ ${protein} г/день`,
+        `• Жиры: ~ ${fats} г/день`,
+        `• Углеводы: ~ ${carbs} г/день`,
+        "",
+        `Примерная разбивка по приёмам пищи:`,
+        `• Завтрак: ~ ${breakfast} ккал`,
+        `• Обед: ~ ${lunch} ккал`,
+        `• Ужин: ~ ${dinner} ккал`,
+        `• Перекусы: ~ ${snacks} ккал`
+      ];
+
+      if (userType === "patient") {
+        lines.push("", "Для пациентов: используем эти числа только внутри вашей индивидуальной программы.");
+      }
+
+      resultTextEl.innerHTML = lines.join("<br>");
+      resultEl.style.display = "block";
+
+      const profile = {
+        userType,
+        gender,
+        age,
+        height,
+        weight,
+        activity,
+        goal,
+        intensity
+      };
+      saveProfile(profile);
+
+      lastDailyData = {
+        ...profile,
+        bmr: Math.round(bmr),
+        maintenance: roundedMaintenance,
+        target: roundedTarget,
+        protein,
+        fats,
+        carbs,
+        meals: { breakfast, lunch, dinner, snacks }
+      };
+
+      if (userType === "patient" && hasSubscription) {
+        lastRecsData = buildRecs(lastDailyData);
+        fillRecs(lastRecsData);
+      }
+
+      return lastDailyData;
+    }
+
+    calcBtn.addEventListener("click", () => {
+      const data = calcDaily();
+      if (!data || !tg) return;
+
+      tg.MainButton.setText("Отправить суточную норму боту");
+      tg.MainButton.show();
+      mainAction = () => {
+        tg.sendData(JSON.stringify({
+          type: "calorie_result_daily",
+          user,
+          hasSubscription,
+          data
+        }));
+        tg.close();
+      };
+    });
+
+    // --- калькулятор блюда ---
+    function calcMeal() {
+      mealErrorEl.style.display = "none";
+      mealResultEl.style.display = "none";
+
+      const name = (mealNameEl.value || "").trim() || "Блюдо";
+      const kcal100 = validateNumber(mealKcal100El, 10, 1200);
+      const weight  = validateNumber(mealWeightEl, 10, 2000);
+
+      if (!kcal100 || !weight) {
+        mealErrorEl.textContent = "Введите корректные значения ккал на 100 г и веса порции.";
+        mealErrorEl.style.display = "block";
+        return null;
+      }
+
+      const totalKcal = Math.round((kcal100 * weight) / 100);
+
+      mealResultTextEl.innerHTML =
+        `${name}: ~ ${totalKcal} ккал<br>` +
+        `(из расчёта ${kcal100} ккал на 100 г и ${weight} г порции)`;
+      mealResultEl.style.display = "block";
+
+      return {
+        name,
+        kcal_per_100g: kcal100,
+        weight_g: weight,
+        total_kcal: totalKcal
+      };
+    }
+
+    mealBtn.addEventListener("click", () => {
+      const data = calcMeal();
+      if (!data || !tg) return;
+
+      tg.MainButton.setText("Отправить блюдо боту");
+      tg.MainButton.show();
+      mainAction = () => {
+        tg.sendData(JSON.stringify({
+          type: "calorie_result_meal",
+          user,
+          hasSubscription,
+          data
+        }));
+        tg.close();
+      };
+    });
+
+    // --- рекомендации ---
+    function buildRecs(d) {
+      if (!d) return null;
+
+      const w = d.weight;
+      const activity = d.activity;
+      const age = d.age;
+
+      const waterMin = Math.round((w * 30) / 100) / 10;
+      const waterMax = Math.round((w * 35) / 100) / 10;
+
+      let stepsFrom, stepsTo;
+      if (activity <= 1.2) {
+        stepsFrom = 6000; stepsTo = 8000;
+      } else if (activity <= 1.55) {
+        stepsFrom = 8000; stepsTo = 10000;
+      } else {
+        stepsFrom = 10000; stepsTo = 12000;
+      }
+
+      let sleepFrom = 7, sleepTo = 9;
+      if (age >= 40) {
+        sleepFrom = 7; sleepTo = 8;
+      }
+
+      return {
+        waterMin,
+        waterMax,
+        stepsFrom,
+        stepsTo,
+        sleepFrom,
+        sleepTo,
+        kcalTarget: d.target,
+        protein: d.protein,
+        fats: d.fats,
+        carbs: d.carbs
+      };
+    }
+
+    function fillRecs(r) {
+      if (!r) return;
+      const lines = [
+        `Калорийность по плану: ~ ${r.kcalTarget} ккал/день`,
+        "",
+        `Вода: ~ ${r.waterMin}–${r.waterMax} л/день (без учёта противопоказаний)`,
+        `Шаги: ~ ${r.stepsFrom.toLocaleString("ru-RU")}–${r.stepsTo.toLocaleString("ru-RU")} шагов/день`,
+        `Сон: ~ ${r.sleepFrom}–${r.sleepTo} ч/ночь`,
+        "",
+        `Опорные макросы:`,
+        `• Белки: ~ ${r.protein} г/день`,
+        `• Жиры: ~ ${r.fats} г/день`,
+        `• Углеводы: ~ ${r.carbs} г/день`
+      ];
+      recsTextEl.innerHTML = lines.join("<br>");
+    }
+
+    function updateRecsVisibility() {
+      const isPatient = userTypeEl.value === "patient";
+      if (isPatient && hasSubscription) {
+        recsLockedEl.style.display = "none";
+        recsContentEl.style.display = "block";
+        if (lastDailyData && !lastRecsData) {
+          lastRecsData = buildRecs(lastDailyData);
+        }
+        if (lastRecsData) fillRecs(lastRecsData);
+      } else {
+        recsLockedEl.style.display = "block";
+        recsContentEl.style.display = "none";
+      }
+    }
+
+    userTypeEl.addEventListener("change", updateRecsVisibility);
+    document.querySelector('[data-screen="recs"]').addEventListener("click", updateRecsVisibility);
+
+    // --- карточка для сторис ---
+    storyBtn.addEventListener("click", () => {
+      if (!lastDailyData) {
+        alert("Сначала рассчитайте суточную норму на вкладке «Суточная норма».");
+        return;
+      }
+      if (!lastRecsData) {
+        lastRecsData = buildRecs(lastDailyData);
+      }
+      const r = lastRecsData;
+      if (!r) return;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d");
+
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, "#ffe6f0");
+      grad.addColorStop(1, "#f6f0ff");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cardX = 80;
+      const cardY = 260;
+      const cardW = canvas.width - 160;
+      const cardH = canvas.height - 520;
+
+      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      ctx.shadowColor = "rgba(0,0,0,0.12)";
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetY = 20;
+      ctx.beginPath();
+      const rRad = 48;
+      ctx.moveTo(cardX + rRad, cardY);
+      ctx.lineTo(cardX + cardW - rRad, cardY);
+      ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + rRad);
+      ctx.lineTo(cardX + cardW, cardY + cardH - rRad);
+      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rRad, cardY + cardH);
+      ctx.lineTo(cardX + rRad, cardY + cardH);
+      ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - rRad);
+      ctx.lineTo(cardX, cardY + rRad);
+      ctx.quadraticCurveTo(cardX, cardY, cardX + rRad, cardY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = "transparent";
+
+      ctx.fillStyle = "#1f1330";
+      ctx.font = "bold 56px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI'";
+      ctx.fillText("Дневные ориентиры", cardX + 60, cardY + 110);
+
+      ctx.font = "32px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI'";
+      ctx.fillText(`Калорийность: ~ ${r.kcalTarget} ккал`, cardX + 60, cardY + 190);
+
+      ctx.font = "30px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI'";
+      ctx.fillText(`Белки: ~ ${r.protein} г`, cardX + 60, cardY + 260);
+      ctx.fillText(`Жиры: ~ ${r.fats} г`, cardX + 60, cardY + 310);
+      ctx.fillText(`Углеводы: ~ ${r.carbs} г`, cardX + 60, cardY + 360);
+      ctx.fillText(`Вода: ${r.waterMin}–${r.waterMax} л/день`, cardX + 60, cardY + 440);
+      ctx.fillText(`Шаги: ${r.stepsFrom}–${r.stepsTo} в день`, cardX + 60, cardY + 490);
+      ctx.fillText(`Сон: ${r.sleepFrom}–${r.sleepTo} ч/ночь`, cardX + 60, cardY + 540);
+
+      ctx.font = "26px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI'";
+      ctx.fillStyle = "#8b6cb5";
+      const handle = user?.username ? "@" + user.username : "devickaya";
+      ctx.fillText(`Персональный план от ${handle}`, cardX + 60, cardY + cardH - 80);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      storyPreview.src = dataUrl;
+      storyPreview.style.display = "block";
+
+      if (tg) {
+        tg.MainButton.setText("Отправить карточку боту");
+        tg.MainButton.show();
+        mainAction = () => {
+          tg.sendData(JSON.stringify({
+            type: "story_card",
+            user,
+            hasSubscription,
+            daily: lastDailyData,
+            recs: lastRecsData
+          }));
+          tg.close();
+        };
+      }
+    });
+  </script>
 </body>
 </html>
