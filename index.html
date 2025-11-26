@@ -292,21 +292,27 @@
 
     <!-- ЭКРАН 2: блюдо -->
     <div class="screen" id="screen-meal">
-      <p class="subtitle small">Быстрый расчёт по ккал на 100 г и весу порции.</p>
+      <p class="subtitle small">Быстрый расчёт по ккал и БЖУ на 100 г и весу порции.</p>
 
       <div class="field">
         <label for="meal-name">Блюдо</label>
-        <input id="meal-name" type="text" placeholder="Например: овсянка на молоке" />
+        <input id="meal-name" type="text" placeholder="Например: салат цезарь" />
       </div>
+
+      <!-- поиск блюда в локальной БД -->
+      <button class="calc-btn secondary" id="meal-find-btn" type="button">
+        Найти в базе по названию
+      </button>
+      <div id="meal-db-info" class="hint" style="display:none;"></div>
 
       <div class="grid">
         <div class="field">
           <label for="meal-kcal100">Ккал на 100 г</label>
-          <input id="meal-kcal100" type="number" min="10" max="1200" placeholder="например, 120" />
+          <input id="meal-kcal100" type="number" min="10" max="1200" placeholder="например, 190" />
         </div>
         <div class="field">
           <label for="meal-weight">Вес порции, г</label>
-          <input id="meal-weight" type="number" min="10" max="2000" placeholder="например, 250" />
+          <input id="meal-weight" type="number" min="10" max="2000" placeholder="например, 180" />
         </div>
       </div>
 
@@ -349,6 +355,65 @@
   </div>
 
   <script>
+    // --- мини-база блюд: значения примерные, на 100 г готового продукта ---
+    const DISH_DB = {
+      "салат цезарь": {
+        kcal100: 190,
+        protein100: 12,
+        fats100: 14,
+        carbs100: 4
+      },
+      "овсянка на воде": {
+        kcal100: 68,
+        protein100: 2.4,
+        fats100: 1.4,
+        carbs100: 12
+      },
+      "овсянка на молоке": {
+        kcal100: 95,
+        protein100: 3.5,
+        fats100: 3.2,
+        carbs100: 13
+      },
+      "куриная грудка отварная": {
+        kcal100: 165,
+        protein100: 31,
+        fats100: 3.6,
+        carbs100: 0
+      },
+      "гречка отварная": {
+        kcal100: 110,
+        protein100: 4.2,
+        fats100: 1.1,
+        carbs100: 21.3
+      },
+      "рис отварной": {
+        kcal100: 115,
+        protein100: 2.7,
+        fats100: 0.5,
+        carbs100: 24.9
+      },
+      "омлет из 2 яиц": {
+        kcal100: 150,
+        protein100: 10,
+        fats100: 11,
+        carbs100: 1.5
+      },
+      "творог 5%": {
+        kcal100: 121,
+        protein100: 17,
+        fats100: 5,
+        carbs100: 1.8
+      }
+    };
+
+    function normalizeDishName(name) {
+      return (name || "")
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, "е");
+    }
+
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
@@ -412,6 +477,7 @@
     const resultEl     = document.getElementById("result");
     const resultTextEl = document.getElementById("result-text");
 
+    // --- элементы для блюда ---
     const mealNameEl   = document.getElementById("meal-name");
     const mealKcal100El= document.getElementById("meal-kcal100");
     const mealWeightEl = document.getElementById("meal-weight");
@@ -419,7 +485,10 @@
     const mealErrorEl  = document.getElementById("meal-error");
     const mealResultEl = document.getElementById("meal-result");
     const mealResultTextEl = document.getElementById("meal-result-text");
+    const mealFindBtn  = document.getElementById("meal-find-btn");
+    const mealDbInfoEl = document.getElementById("meal-db-info");
 
+    // --- элементы рекомендаций ---
     const recsLockedEl   = document.getElementById("recs-locked");
     const recsContentEl  = document.getElementById("recs-content");
     const recsTextEl     = document.getElementById("recs-text");
@@ -610,12 +679,52 @@
       };
     });
 
+    // --- поиск блюда в локальной БД ---
+    function findDishFromDb() {
+      mealErrorEl.style.display = "none";
+      mealDbInfoEl.style.display = "none";
+
+      const rawName = mealNameEl.value;
+      const norm = normalizeDishName(rawName);
+
+      if (!norm) {
+        mealErrorEl.textContent = "Введите название блюда.";
+        mealErrorEl.style.display = "block";
+        return;
+      }
+
+      const dish = DISH_DB[norm];
+      if (!dish) {
+        mealErrorEl.textContent = "Этого блюда пока нет в демо-базе. Введите ккал на 100 г вручную.";
+        mealErrorEl.style.display = "block";
+        return;
+      }
+
+      mealKcal100El.value = dish.kcal100;
+
+      mealDbInfoEl.innerHTML =
+        `100 г: ~ ${dish.kcal100} ккал<br>` +
+        `Белки: ${dish.protein100} г • Жиры: ${dish.fats100} г • Углеводы: ${dish.carbs100} г`;
+      mealDbInfoEl.style.display = "block";
+    }
+
+    mealFindBtn.addEventListener("click", findDishFromDb);
+
     // --- калькулятор блюда ---
     function calcMeal() {
       mealErrorEl.style.display = "none";
       mealResultEl.style.display = "none";
 
-      const name = (mealNameEl.value || "").trim() || "Блюдо";
+      const rawName = mealNameEl.value || "";
+      const normName = normalizeDishName(rawName);
+      const name = rawName.trim() || "Блюдо";
+
+      const dish = DISH_DB[normName];
+
+      if (!mealKcal100El.value && dish) {
+        mealKcal100El.value = dish.kcal100;
+      }
+
       const kcal100 = validateNumber(mealKcal100El, 10, 1200);
       const weight  = validateNumber(mealWeightEl, 10, 2000);
 
@@ -627,9 +736,25 @@
 
       const totalKcal = Math.round((kcal100 * weight) / 100);
 
+      let macrosBlock = "";
+      if (dish) {
+        const pPort = Math.round(dish.protein100 * weight / 100);
+        const fPort = Math.round(dish.fats100 * weight / 100);
+        const cPort = Math.round(dish.carbs100 * weight / 100);
+
+        macrosBlock =
+          `<br><br>` +
+          `На 100 г: ${dish.kcal100} ккал — белки ${dish.protein100} г, ` +
+          `жиры ${dish.fats100} г, углеводы ${dish.carbs100} г` +
+          `<br>` +
+          `Порция ${weight} г: белки ~${pPort} г, жиры ~${fPort} г, углеводы ~${cPort} г`;
+      }
+
       mealResultTextEl.innerHTML =
         `${name}: ~ ${totalKcal} ккал<br>` +
-        `(из расчёта ${kcal100} ккал на 100 г и ${weight} г порции)`;
+        `(из расчёта ${kcal100} ккал на 100 г и ${weight} г порции)` +
+        macrosBlock;
+
       mealResultEl.style.display = "block";
 
       return {
@@ -769,7 +894,7 @@
       ctx.lineTo(cardX + cardW - rRad, cardY);
       ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + rRad);
       ctx.lineTo(cardX + cardW, cardY + cardH - rRad);
-      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rRad, cardY + cardH);
+      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rRad, cardX + cardH);
       ctx.lineTo(cardX + rRad, cardY + cardH);
       ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - rRad);
       ctx.lineTo(cardX, cardY + rRad);
