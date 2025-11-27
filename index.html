@@ -201,6 +201,9 @@
       overflow-y: auto;
       font-size: 13px;
       z-index: 10;
+      position: absolute;
+      left: 0;
+      right: 0;
     }
 
     .suggestion-item {
@@ -691,7 +694,6 @@
       }
 
       const itemsHtml = matches.map(k => {
-        // чуть-чуть приводим к виду "Чуть красивее"
         const displayName = k.charAt(0).toUpperCase() + k.slice(1);
         return `<div class="suggestion-item" data-key="${escapeHtml(k)}">${escapeHtml(displayName)}</div>`;
       }).join("");
@@ -702,14 +704,12 @@
 
     mealNameEl.addEventListener("input", updateMealSuggestions);
 
-    // прячем подсказки при потере фокуса (чуть с задержкой, чтобы клик сработал)
     mealNameEl.addEventListener("blur", () => {
       setTimeout(() => {
         mealSuggestionsEl.style.display = "none";
       }, 150);
     });
 
-    // выбор блюда из подсказок
     mealSuggestionsEl.addEventListener("click", (e) => {
       const item = e.target.closest(".suggestion-item");
       if (!item) return;
@@ -733,14 +733,14 @@
       mealDbInfoEl.style.display = "block";
     });
 
-    // --- калькулятор блюда ---
+    // --- калькулятор блюда + возврат данных для дневника ---
     function calcMeal() {
       mealErrorEl.style.display = "none";
       mealResultEl.style.display = "none";
 
-      const rawName = mealNameEl.value || "";
+      const rawName  = mealNameEl.value || "";
       const normName = normalizeDishName(rawName);
-      const name = rawName.trim() || "Блюдо";
+      const name     = rawName.trim() || "Блюдо";
 
       let dish = null;
       if (typeof DISH_DB === "object") {
@@ -767,10 +767,25 @@
       const totalKcal = Math.round((kcal100 * weight) / 100);
 
       let macrosBlock = "";
+      let macrosPer100 = null;
+      let macrosPortion = null;
+
       if (dish) {
         const pPort = dish.protein100 != null ? Math.round(dish.protein100 * weight / 100) : null;
         const fPort = dish.fats100    != null ? Math.round(dish.fats100    * weight / 100) : null;
         const cPort = dish.carbs100   != null ? Math.round(dish.carbs100   * weight / 100) : null;
+
+        macrosPer100 = {
+          protein: dish.protein100 ?? null,
+          fats:    dish.fats100    ?? null,
+          carbs:   dish.carbs100   ?? null
+        };
+
+        macrosPortion = {
+          protein: pPort,
+          fats:    fPort,
+          carbs:   cPort
+        };
 
         macrosBlock =
           `<br><br>` +
@@ -794,22 +809,25 @@
         name,
         kcal_per_100g: kcal100,
         weight_g: weight,
-        total_kcal: totalKcal
+        total_kcal: totalKcal,
+        macros_per_100: macrosPer100,
+        macros_portion: macrosPortion
       };
     }
 
     mealBtn.addEventListener("click", () => {
-      const data = calcMeal();
-      if (!data || !tg) return;
+      const mealData = calcMeal();
+      if (!mealData || !tg) return;
 
-      tg.MainButton.setText("Отправить блюдо боту");
+      tg.MainButton.setText("Добавить блюдо в дневник");
       tg.MainButton.show();
       mainAction = () => {
         tg.sendData(JSON.stringify({
-          type: "calorie_result_meal",
+          type: "meal_log_entry",
           user,
           hasSubscription,
-          data
+          timestamp: Date.now(),
+          meal: mealData
         }));
         tg.close();
       };
