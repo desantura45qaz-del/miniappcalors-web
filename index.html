@@ -5,6 +5,8 @@
   <title>Калькулятор калорий</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Файл с полной базой блюд, созданный из твоего Excel -->
+  <script src="dish_db_from_excel.js"></script>
   <style>
     :root { color-scheme: light dark; }
 
@@ -187,6 +189,28 @@
       max-height: 320px;
       object-fit: cover;
     }
+
+    /* выпадающий список блюд */
+    .suggestions {
+      margin-top: 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: var(--tg-theme-bg-color, #ffffff);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 13px;
+      z-index: 10;
+    }
+
+    .suggestion-item {
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+      background: rgba(0,0,0,0.05);
+    }
   </style>
 </head>
 
@@ -294,15 +318,12 @@
     <div class="screen" id="screen-meal">
       <p class="subtitle small">Быстрый расчёт по ккал и БЖУ на 100 г и весу порции.</p>
 
-      <div class="field">
+      <div class="field" style="position: relative;">
         <label for="meal-name">Блюдо</label>
-        <input id="meal-name" type="text" placeholder="Например: салат цезарь" />
+        <input id="meal-name" type="text" placeholder="Например: салат цезарь" autocomplete="off" />
+        <div id="meal-suggestions" class="suggestions" style="display:none;"></div>
       </div>
 
-      <!-- поиск блюда в локальной БД -->
-      <button class="calc-btn secondary" id="meal-find-btn" type="button">
-        Найти в базе по названию
-      </button>
       <div id="meal-db-info" class="hint" style="display:none;"></div>
 
       <div class="grid">
@@ -355,63 +376,18 @@
   </div>
 
   <script>
-    // --- мини-база блюд: значения примерные, на 100 г готового продукта ---
-    const DISH_DB = {
-      "салат цезарь": {
-        kcal100: 190,
-        protein100: 12,
-        fats100: 14,
-        carbs100: 4
-      },
-      "овсянка на воде": {
-        kcal100: 68,
-        protein100: 2.4,
-        fats100: 1.4,
-        carbs100: 12
-      },
-      "овсянка на молоке": {
-        kcal100: 95,
-        protein100: 3.5,
-        fats100: 3.2,
-        carbs100: 13
-      },
-      "куриная грудка отварная": {
-        kcal100: 165,
-        protein100: 31,
-        fats100: 3.6,
-        carbs100: 0
-      },
-      "гречка отварная": {
-        kcal100: 110,
-        protein100: 4.2,
-        fats100: 1.1,
-        carbs100: 21.3
-      },
-      "рис отварной": {
-        kcal100: 115,
-        protein100: 2.7,
-        fats100: 0.5,
-        carbs100: 24.9
-      },
-      "омлет из 2 яиц": {
-        kcal100: 150,
-        protein100: 10,
-        fats100: 11,
-        carbs100: 1.5
-      },
-      "творог 5%": {
-        kcal100: 121,
-        protein100: 17,
-        fats100: 5,
-        carbs100: 1.8
-      }
-    };
-
+    // нормализация названий блюд (как в базе)
     function normalizeDishName(name) {
       return (name || "")
         .trim()
         .toLowerCase()
         .replace(/ё/g, "е");
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => (
+        { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c] || c
+      ));
     }
 
     const tg = window.Telegram?.WebApp;
@@ -477,7 +453,7 @@
     const resultEl     = document.getElementById("result");
     const resultTextEl = document.getElementById("result-text");
 
-    // --- элементы для блюда ---
+    // --- элементы блюда ---
     const mealNameEl   = document.getElementById("meal-name");
     const mealKcal100El= document.getElementById("meal-kcal100");
     const mealWeightEl = document.getElementById("meal-weight");
@@ -485,8 +461,8 @@
     const mealErrorEl  = document.getElementById("meal-error");
     const mealResultEl = document.getElementById("meal-result");
     const mealResultTextEl = document.getElementById("meal-result-text");
-    const mealFindBtn  = document.getElementById("meal-find-btn");
     const mealDbInfoEl = document.getElementById("meal-db-info");
+    const mealSuggestionsEl = document.getElementById("meal-suggestions");
 
     // --- элементы рекомендаций ---
     const recsLockedEl   = document.getElementById("recs-locked");
@@ -543,7 +519,7 @@
       userInfoEl.textContent = userInfoEl.textContent.replace(" • профиль загружен", "");
     });
 
-    // --- MainButton общая логика ---
+    // --- MainButton ---
     let mainAction = null;
     if (tg) {
       tg.MainButton.onClick(() => {
@@ -679,36 +655,83 @@
       };
     });
 
-    // --- поиск блюда в локальной БД ---
-    function findDishFromDb() {
+    // --- автодополнение по базе блюд ---
+    let currentDishKey = null;
+    let dishKeys = [];
+    if (typeof DISH_DB === "object") {
+      dishKeys = Object.keys(DISH_DB);
+    }
+
+    function updateMealSuggestions() {
       mealErrorEl.style.display = "none";
       mealDbInfoEl.style.display = "none";
+      currentDishKey = null;
 
-      const rawName = mealNameEl.value;
-      const norm = normalizeDishName(rawName);
+      const raw = mealNameEl.value;
+      const norm = normalizeDishName(raw);
 
-      if (!norm) {
-        mealErrorEl.textContent = "Введите название блюда.";
-        mealErrorEl.style.display = "block";
+      if (!norm || norm.length < 2 || !dishKeys.length) {
+        mealSuggestionsEl.style.display = "none";
+        mealSuggestionsEl.innerHTML = "";
         return;
       }
 
-      const dish = DISH_DB[norm];
-      if (!dish) {
-        mealErrorEl.textContent = "Этого блюда пока нет в демо-базе. Введите ккал на 100 г вручную.";
-        mealErrorEl.style.display = "block";
+      const matches = [];
+      for (const key of dishKeys) {
+        if (key.indexOf(norm) !== -1) {
+          matches.push(key);
+          if (matches.length >= 12) break;
+        }
+      }
+
+      if (!matches.length) {
+        mealSuggestionsEl.style.display = "none";
+        mealSuggestionsEl.innerHTML = "";
         return;
       }
 
-      mealKcal100El.value = dish.kcal100;
+      const itemsHtml = matches.map(k => {
+        // чуть-чуть приводим к виду "Чуть красивее"
+        const displayName = k.charAt(0).toUpperCase() + k.slice(1);
+        return `<div class="suggestion-item" data-key="${escapeHtml(k)}">${escapeHtml(displayName)}</div>`;
+      }).join("");
+
+      mealSuggestionsEl.innerHTML = itemsHtml;
+      mealSuggestionsEl.style.display = "block";
+    }
+
+    mealNameEl.addEventListener("input", updateMealSuggestions);
+
+    // прячем подсказки при потере фокуса (чуть с задержкой, чтобы клик сработал)
+    mealNameEl.addEventListener("blur", () => {
+      setTimeout(() => {
+        mealSuggestionsEl.style.display = "none";
+      }, 150);
+    });
+
+    // выбор блюда из подсказок
+    mealSuggestionsEl.addEventListener("click", (e) => {
+      const item = e.target.closest(".suggestion-item");
+      if (!item) return;
+      const key = item.getAttribute("data-key");
+      if (!key || !DISH_DB[key]) return;
+
+      currentDishKey = key;
+      const dish = DISH_DB[key];
+      const displayName = item.textContent || key;
+
+      mealNameEl.value = displayName;
+      mealSuggestionsEl.style.display = "none";
+
+      if (dish.kcal100 != null) {
+        mealKcal100El.value = dish.kcal100;
+      }
 
       mealDbInfoEl.innerHTML =
         `100 г: ~ ${dish.kcal100} ккал<br>` +
         `Белки: ${dish.protein100} г • Жиры: ${dish.fats100} г • Углеводы: ${dish.carbs100} г`;
       mealDbInfoEl.style.display = "block";
-    }
-
-    mealFindBtn.addEventListener("click", findDishFromDb);
+    });
 
     // --- калькулятор блюда ---
     function calcMeal() {
@@ -719,7 +742,14 @@
       const normName = normalizeDishName(rawName);
       const name = rawName.trim() || "Блюдо";
 
-      const dish = DISH_DB[normName];
+      let dish = null;
+      if (typeof DISH_DB === "object") {
+        if (currentDishKey && DISH_DB[currentDishKey]) {
+          dish = DISH_DB[currentDishKey];
+        } else {
+          dish = DISH_DB[normName] || null;
+        }
+      }
 
       if (!mealKcal100El.value && dish) {
         mealKcal100El.value = dish.kcal100;
@@ -738,16 +768,19 @@
 
       let macrosBlock = "";
       if (dish) {
-        const pPort = Math.round(dish.protein100 * weight / 100);
-        const fPort = Math.round(dish.fats100 * weight / 100);
-        const cPort = Math.round(dish.carbs100 * weight / 100);
+        const pPort = dish.protein100 != null ? Math.round(dish.protein100 * weight / 100) : null;
+        const fPort = dish.fats100    != null ? Math.round(dish.fats100    * weight / 100) : null;
+        const cPort = dish.carbs100   != null ? Math.round(dish.carbs100   * weight / 100) : null;
 
         macrosBlock =
           `<br><br>` +
           `На 100 г: ${dish.kcal100} ккал — белки ${dish.protein100} г, ` +
           `жиры ${dish.fats100} г, углеводы ${dish.carbs100} г` +
           `<br>` +
-          `Порция ${weight} г: белки ~${pPort} г, жиры ~${fPort} г, углеводы ~${cPort} г`;
+          `Порция ${weight} г: ` +
+          (pPort != null ? `белки ~${pPort} г, ` : "") +
+          (fPort != null ? `жиры ~${fPort} г, ` : "") +
+          (cPort != null ? `углеводы ~${cPort} г` : "");
       }
 
       mealResultTextEl.innerHTML =
@@ -894,7 +927,7 @@
       ctx.lineTo(cardX + cardW - rRad, cardY);
       ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + rRad);
       ctx.lineTo(cardX + cardW, cardY + cardH - rRad);
-      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rRad, cardX + cardH);
+      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - rRad, cardY + cardH);
       ctx.lineTo(cardX + rRad, cardY + cardH);
       ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - rRad);
       ctx.lineTo(cardX, cardY + rRad);
