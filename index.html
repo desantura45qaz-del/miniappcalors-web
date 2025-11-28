@@ -487,47 +487,72 @@
     // =============================
     // База блюд из dish_db_from_excel.js
     // =============================
-    let DISH_DB = [];
+    let DISH_DB_LOCAL = [];
 
     function initDishDb() {
       try {
-        const raw = window.DISH_DB;
+        let raw = null;
+
+        // 1) пробуем window.DISH_DB
+        if (typeof window !== 'undefined' && window.DISH_DB) {
+          raw = window.DISH_DB;
+        }
+        // 2) если база объявлена через const/let DISH_DB = [...]
+        else if (typeof DISH_DB !== 'undefined') {
+          raw = DISH_DB;
+        }
+
         if (!raw) {
-          DISH_DB = [];
+          DISH_DB_LOCAL = [];
           return;
         }
 
         if (Array.isArray(raw)) {
-          // Ожидаем массив объектов вида { name, protein, fat, carbs, kcal }
-          DISH_DB = raw.map(function (x, index) {
-            const name = String(x.name || x.title || ('Блюдо ' + (index + 1)));
+          // Ожидаем массив объектов
+          DISH_DB_LOCAL = raw.map(function (x, index) {
+            const name = String(
+              x.name ||
+              x.title ||
+              x['Название'] ||
+              x['name'] ||
+              ('Блюдо ' + (index + 1))
+            );
             return {
               name: name,
-              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? 0) || 0,
-              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? 0) || 0,
-              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? 0) || 0,
-              kcal: parseFloat(x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? 0) || 0
+              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? x['Белки'] ?? 0) || 0,
+              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? x['Жиры'] ?? 0) || 0,
+              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? x['Углеводы'] ?? 0) || 0,
+              kcal: parseFloat(
+                x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? x['Ккал'] ?? 0
+              ) || 0
             };
           });
         } else if (typeof raw === 'object') {
           // Если это объект с ключами
-          DISH_DB = Object.keys(raw).map(function (key) {
+          DISH_DB_LOCAL = Object.keys(raw).map(function (key) {
             const x = raw[key] || {};
-            const name = String(x.name || x.title || key);
+            const name = String(
+              x.name ||
+              x.title ||
+              x['Название'] ||
+              key
+            );
             return {
               name: name,
-              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? 0) || 0,
-              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? 0) || 0,
-              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? 0) || 0,
-              kcal: parseFloat(x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? 0) || 0
+              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? x['Белки'] ?? 0) || 0,
+              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? x['Жиры'] ?? 0) || 0,
+              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? x['Углеводы'] ?? 0) || 0,
+              kcal: parseFloat(
+                x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? x['Ккал'] ?? 0
+              ) || 0
             };
           });
         } else {
-          DISH_DB = [];
+          DISH_DB_LOCAL = [];
         }
       } catch (e) {
         console.log('Ошибка инициализации базы блюд', e);
-        DISH_DB = [];
+        DISH_DB_LOCAL = [];
       }
     }
 
@@ -539,7 +564,7 @@
     function filterDishDb(query) {
       if (!query) return [];
       const q = query.toLowerCase();
-      const items = DISH_DB.filter(function (item) {
+      const items = DISH_DB_LOCAL.filter(function (item) {
         const name = String(item.name || '').toLowerCase();
         return name.includes(q);
       });
