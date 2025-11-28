@@ -381,6 +381,18 @@
 
     <!-- TAB: ДНЕВНИК ПИТАНИЯ -->
     <div id="tab-diary" class="tab">
+      <!-- Фильтр по дате -->
+      <div class="field">
+        <label>Фильтр по дате</label>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input id="diaryFilterDate" type="date" style="flex:1; min-width:140px;" />
+          <button type="button" class="btn-small" id="btnDiaryToday">Сегодня</button>
+          <button type="button" class="btn-small" id="btnDiaryYesterday">Вчера</button>
+          <button type="button" class="btn-small" id="btnDiaryAll">Все</button>
+        </div>
+      </div>
+
+      <!-- Форма добавления записи -->
       <div class="field">
         <label>Дата</label>
         <input id="mealDate" type="date" />
@@ -418,6 +430,7 @@
 
       <button class="btn" id="btnAddMeal">Добавить в дневник</button>
 
+      <div id="diarySummary" class="result-card" style="margin-top:14px; display:none;"></div>
       <div id="diaryList" style="margin-top:14px;"></div>
     </div>
   </div>
@@ -493,11 +506,11 @@
       try {
         let raw = null;
 
-        // 1) пробуем window.DISH_DB
+        // 1) window.DISH_DB
         if (typeof window !== 'undefined' && window.DISH_DB) {
           raw = window.DISH_DB;
         }
-        // 2) если база объявлена через const/let DISH_DB = [...]
+        // 2) глобальная DISH_DB
         else if (typeof DISH_DB !== 'undefined') {
           raw = DISH_DB;
         }
@@ -508,7 +521,6 @@
         }
 
         if (Array.isArray(raw)) {
-          // Ожидаем массив объектов
           DISH_DB_LOCAL = raw.map(function (x, index) {
             const name = String(
               x.name ||
@@ -528,7 +540,6 @@
             };
           });
         } else if (typeof raw === 'object') {
-          // Если это объект с ключами
           DISH_DB_LOCAL = Object.keys(raw).map(function (key) {
             const x = raw[key] || {};
             const name = String(
@@ -759,7 +770,16 @@
     // =============================
     const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
     const diaryListEl = document.getElementById('diaryList');
+    const diarySummaryEl = document.getElementById('diarySummary');
     const btnAddMeal = document.getElementById('btnAddMeal');
+
+    const diaryFilterDateInput = document.getElementById('diaryFilterDate');
+    const btnDiaryToday = document.getElementById('btnDiaryToday');
+    const btnDiaryYesterday = document.getElementById('btnDiaryYesterday');
+    const btnDiaryAll = document.getElementById('btnDiaryAll');
+
+    let diaryFilterMode = 'day'; // 'day' | 'all'
+    let diaryFilterDate = '';    // 'YYYY-MM-DD'
 
     function loadDiary() {
       try {
@@ -801,15 +821,37 @@
       const diary = loadDiary();
       diaryListEl.innerHTML = '';
 
-      if (!diary.length) {
+      let filtered = diary;
+
+      if (diaryFilterMode === 'day' && diaryFilterDate) {
+        filtered = diary.filter(function (entry) {
+          return entry.date === diaryFilterDate;
+        });
+      }
+
+      if (!filtered.length) {
         const empty = document.createElement('p');
         empty.className = 'hint';
-        empty.textContent = 'Записей пока нет. Добавьте первый приём пищи.';
+        empty.textContent = diaryFilterMode === 'all'
+          ? 'Записей пока нет.'
+          : 'Записей за выбранный день пока нет.';
         diaryListEl.appendChild(empty);
+
+        if (diarySummaryEl) {
+          diarySummaryEl.style.display = 'block';
+          diarySummaryEl.textContent =
+            diaryFilterMode === 'all'
+              ? 'Итого: 0 ккал'
+              : 'Итого за день: 0 ккал';
+        }
         return;
       }
 
-      diary.forEach(function (entry) {
+      let totalKcal = 0;
+
+      filtered.forEach(function (entry) {
+        totalKcal += Number(entry.kcal || 0);
+
         const wrap = document.createElement('div');
         wrap.className = 'card-preview';
 
@@ -831,6 +873,17 @@
 
         diaryListEl.appendChild(wrap);
       });
+
+      if (diarySummaryEl) {
+        diarySummaryEl.style.display = 'block';
+        if (diaryFilterMode === 'all') {
+          diarySummaryEl.textContent =
+            'Итого по всем записям: ' + totalKcal + ' ккал';
+        } else {
+          diarySummaryEl.textContent =
+            'Итого за ' + diaryFilterDate + ': ' + totalKcal + ' ккал';
+        }
+      }
     }
 
     btnAddMeal.addEventListener('click', function () {
@@ -881,25 +934,91 @@
         kcal: kcal
       });
       saveDiary(diary);
+
+      // если фильтр по дню и дата ещё не установлена — ставим текущую
+      if (diaryFilterMode === 'day' && !diaryFilterDate) {
+        diaryFilterDate = date;
+        if (diaryFilterDateInput) diaryFilterDateInput.value = date;
+      }
+
       renderDiary();
     });
 
-    // Инициализация даты/времени по умолчанию
-    (function initDateTime() {
+    // Инициализация даты/времени + фильтра по дате
+    (function initDateTimeAndFilter() {
       const dateInput = document.getElementById('mealDate');
       const timeInput = document.getElementById('mealTime');
-      if (!dateInput || !timeInput) return;
 
       const now = new Date();
       const yyyy = now.getFullYear();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      dateInput.value = yyyy + '-' + mm + '-' + dd;
+      const todayStr = yyyy + '-' + mm + '-' + dd;
 
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      timeInput.value = hh + ':' + min;
+      if (dateInput) {
+        dateInput.value = todayStr;
+      }
+
+      if (timeInput) {
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        timeInput.value = hh + ':' + min;
+      }
+
+      // фильтр по умолчанию — сегодня
+      diaryFilterMode = 'day';
+      diaryFilterDate = todayStr;
+      if (diaryFilterDateInput) {
+        diaryFilterDateInput.value = todayStr;
+      }
     })();
+
+    // Обработчики фильтра дневника
+    if (diaryFilterDateInput) {
+      diaryFilterDateInput.addEventListener('change', function () {
+        diaryFilterMode = 'day';
+        diaryFilterDate = diaryFilterDateInput.value;
+        renderDiary();
+      });
+    }
+
+    if (btnDiaryToday) {
+      btnDiaryToday.addEventListener('click', function () {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const todayStr = yyyy + '-' + mm + '-' + dd;
+
+        diaryFilterMode = 'day';
+        diaryFilterDate = todayStr;
+        if (diaryFilterDateInput) diaryFilterDateInput.value = todayStr;
+        renderDiary();
+      });
+    }
+
+    if (btnDiaryYesterday) {
+      btnDiaryYesterday.addEventListener('click', function () {
+        const now = new Date();
+        now.setDate(now.getDate() - 1);
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const yestStr = yyyy + '-' + mm + '-' + dd;
+
+        diaryFilterMode = 'day';
+        diaryFilterDate = yestStr;
+        if (diaryFilterDateInput) diaryFilterDateInput.value = yestStr;
+        renderDiary();
+      });
+    }
+
+    if (btnDiaryAll) {
+      btnDiaryAll.addEventListener('click', function () {
+        diaryFilterMode = 'all';
+        renderDiary();
+      });
+    }
 
     // Стартовый рендер
     renderCards();
