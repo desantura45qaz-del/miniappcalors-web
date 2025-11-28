@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Devickaya — Калькулятор калорий & дневник питания</title>
+  <title>Devickaya — тест JS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -45,7 +45,6 @@
       box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
     }
 
-    /* Header */
     .header {
       display: flex;
       gap: 12px;
@@ -54,9 +53,9 @@
 
     .brand-logo-wrapper {
       flex-shrink: 0;
-      width: 80px;
-      height: 80px;
-      border-radius: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
       overflow: hidden;
       border: 1px solid var(--border);
     }
@@ -115,7 +114,6 @@
       color: var(--text-muted);
     }
 
-    /* Tabs */
     .tabs {
       margin-top: 4px;
       display: flex;
@@ -152,7 +150,6 @@
       display: block;
     }
 
-    /* Inputs */
     .field {
       display: flex;
       flex-direction: column;
@@ -175,12 +172,6 @@
       font-size: 14px;
     }
 
-    input:focus,
-    select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
     .btn {
       width: 100%;
       padding: 10px;
@@ -194,24 +185,7 @@
       cursor: pointer;
     }
 
-    .btn-small {
-      padding: 4px 8px;
-      font-size: 11px;
-      border-radius: 999px;
-      background: #020617;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-
-    .btn-danger {
-      border-color: #ef4444;
-      color: #fecaca;
-    }
-
-    /* Card Previews & Macros */
-    .result-card,
-    .card-preview {
+    .result-card {
       background: #0f172a;
       padding: 12px;
       border-radius: 16px;
@@ -219,651 +193,112 @@
       margin-top: 14px;
       font-size: 13px;
     }
-
-    .result-row,
-    .macros-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 6px;
-    }
-
-    .macros-pill {
-      padding: 4px 8px;
-      background: #020617;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      font-size: 11px;
-    }
-
-    /* Autocomplete */
-    .autocomplete-wrapper {
-      position: relative;
-    }
-
-    .autocomplete-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #0f172a;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      margin-top: 4px;
-      z-index: 1000;
-      max-height: 230px;
-      overflow-y: auto;
-    }
-
-    .autocomplete-item {
-      padding: 8px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-    }
-
-    .autocomplete-item:hover {
-      background: #1e293b;
-    }
-
-    .hint {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
   </style>
 </head>
 
 <body>
 <div class="app">
   <div class="card">
-
-    <!-- HEADER -->
     <div class="header">
       <div class="brand-logo-wrapper">
-        <!-- положи brand-logo-devickaya.png в корень репозитория -->
         <img src="brand-logo-devickaya.png" alt="Devickaya" />
       </div>
-
       <div class="header-main">
         <div class="logo-pill">
           <div class="logo-dot"></div>
           Devickaya • MiniApp
         </div>
-
         <h1>Калькулятор калорий & дневник</h1>
         <div class="header-subtitle">
-          Подберите норму, создавайте блюда и отслеживайте питание
+          Тест JS: вкладки и расчёт
         </div>
       </div>
-
       <div class="chip-beta">beta</div>
     </div>
 
-    <!-- TABS -->
     <div class="tabs">
       <button class="tab-btn active" data-tab="calc">Калькулятор</button>
-      <button class="tab-btn" data-tab="cards">Карточки блюд</button>
+      <button class="tab-btn" data-tab="cards">Карточки</button>
       <button class="tab-btn" data-tab="diary">Дневник</button>
     </div>
 
-    <!-- TAB 1: КАЛЬКУЛЯТОР -->
     <div id="tab-calc" class="tab active">
-
-      <div class="field">
-        <label>Пол</label>
-        <select id="gender">
-          <option value="female">Женщина</option>
-          <option value="male">Мужчина</option>
-        </select>
-      </div>
-
       <div class="field">
         <label>Возраст</label>
         <input id="age" type="number" placeholder="30" />
       </div>
-
       <div class="field">
         <label>Рост (см)</label>
         <input id="height" type="number" placeholder="170" />
       </div>
-
       <div class="field">
         <label>Вес (кг)</label>
         <input id="weight" type="number" placeholder="60" />
       </div>
-
-      <div class="field">
-        <label>Уровень активности</label>
-        <select id="activity">
-          <option value="1.2">Минимальная</option>
-          <option value="1.375">Лёгкая</option>
-          <option value="1.55">Средняя</option>
-          <option value="1.725">Высокая</option>
-        </select>
-      </div>
-
-      <button class="btn" id="btnCalc">Рассчитать</button>
-
+      <button class="btn" id="btnCalc">Рассчитать (тест)</button>
       <div id="calcResult"></div>
     </div>
 
-    <!-- TAB 2: КАРТОЧКИ БЛЮД -->
     <div id="tab-cards" class="tab">
-
-      <div class="field autocomplete-wrapper">
-        <label>Выбрать блюдо из базы</label>
-        <input id="dbSearch" type="text" placeholder="Начните вводить..." autocomplete="off" />
-        <div id="autocompleteList" class="autocomplete-list" style="display:none;"></div>
-        <div class="hint">
-          Если блюдо есть в базе — выберите его из списка выше.
-          Если нет — введите своё блюдо ниже.
-        </div>
-      </div>
-
-      <div class="field">
-        <label>Название блюда</label>
-        <input id="dishName" type="text" />
-      </div>
-
-      <div class="field">
-        <label>Белки / 100 г</label>
-        <input id="protein100" type="number" step="0.1" />
-      </div>
-
-      <div class="field">
-        <label>Жиры / 100 г</label>
-        <input id="fat100" type="number" step="0.1" />
-      </div>
-
-      <div class="field">
-        <label>Углеводы / 100 г</label>
-        <input id="carbs100" type="number" step="0.1" />
-      </div>
-
-      <div class="field">
-        <label>Калории / 100 г</label>
-        <input id="kcal100" type="number" step="1" />
-      </div>
-
-      <div class="field">
-        <label>Масса порции (г)</label>
-        <input id="portion" type="number" />
-      </div>
-
-      <button class="btn" id="btnSaveDish">Сохранить блюдо</button>
-
-      <div id="cardsList" style="margin-top:16px;"></div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:0;">
+        Это тестовая вкладка "Карточки". Если вы её видите при переключении — JS работает.
+      </p>
     </div>
 
-    <!-- TAB 3: ДНЕВНИК -->
     <div id="tab-diary" class="tab">
-      <div class="field">
-        <label>Дата</label>
-        <input id="mealDate" type="date" />
-      </div>
-
-      <div class="field">
-        <label>Время</label>
-        <input id="mealTime" type="time" />
-      </div>
-
-      <div class="field">
-        <label>Тип приёма пищи</label>
-        <select id="mealType">
-          <option value="breakfast">Завтрак</option>
-          <option value="lunch">Обед</option>
-          <option value="dinner">Ужин</option>
-          <option value="snack">Перекус</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Блюдо из карточек</label>
-        <select id="mealDishSelect"></select>
-      </div>
-
-      <div class="field">
-        <label>Или своё блюдо</label>
-        <input id="mealCustomName" type="text" />
-      </div>
-
-      <div class="field">
-        <label>Порция (г)</label>
-        <input id="mealPortion" type="number" />
-      </div>
-
-      <button class="btn" id="btnAddMeal">Добавить в дневник</button>
-
-      <div id="diaryList" style="margin-top:18px;"></div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:0;">
+        Это тестовая вкладка "Дневник". Если вы её видите при переключении — JS работает.
+      </p>
     </div>
   </div>
 </div>
 
-<!-- БАЗА БЛЮД: в этом файле объявлен window.DISH_DB -->
-<script src="dish_db_from_excel.js"></script>
-
 <script>
-  // ============================
-  // Переключение вкладок
-  // ============================
-  const tabButtons = document.querySelectorAll('.tab-btn');
-  const tabs = document.querySelectorAll('.tab');
+  // Всё заворачиваем в DOMContentLoaded, чтобы точно дождаться разметки
+  document.addEventListener('DOMContentLoaded', function () {
+    // Переключение вкладок
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabs = document.querySelectorAll('.tab');
 
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetId = 'tab-' + btn.dataset.tab;
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabs.forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      const target = document.getElementById(targetId);
-      if (target) target.classList.add('active');
+    tabButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const targetId = 'tab-' + btn.getAttribute('data-tab');
+
+        tabButtons.forEach(function (b) { b.classList.remove('active'); });
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+
+        btn.classList.add('active');
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.classList.add('active');
+        }
+      });
     });
-  });
 
-  // ============================
-  // Калькулятор калорий
-  // ============================
-  const btnCalc = document.getElementById('btnCalc');
-
-  btnCalc.addEventListener('click', () => {
-    const gender = document.getElementById('gender').value;
-    const age = parseFloat(document.getElementById('age').value || '0');
-    const height = parseFloat(document.getElementById('height').value || '0');
-    const weight = parseFloat(document.getElementById('weight').value || '0');
-    const activity = parseFloat(document.getElementById('activity').value || '1.2');
-
-    if (!age || !height || !weight) {
-      alert('Заполните возраст, рост и вес');
-      return;
-    }
-
-    let bmr;
-    if (gender === 'male') {
-      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-
-    const maintain = bmr * activity;
-
+    // Тестовый расчёт калорий
+    const btnCalc = document.getElementById('btnCalc');
     const resultEl = document.getElementById('calcResult');
-    resultEl.innerHTML = `
-      <div class="result-card">
-        <div class="result-row">
-          <div>Поддержание:</div>
-          <div><strong>${Math.round(maintain)} ккал</strong></div>
+
+    btnCalc.addEventListener('click', function () {
+      const age = parseFloat(document.getElementById('age').value || '0');
+      const height = parseFloat(document.getElementById('height').value || '0');
+      const weight = parseFloat(document.getElementById('weight').value || '0');
+
+      if (!age || !height || !weight) {
+        alert('Заполните возраст, рост и вес (тест)');
+        return;
+      }
+
+      // Простая тестовая формула
+      const calories = Math.round(weight * 24);
+      resultEl.innerHTML = `
+        <div class="result-card">
+          <div>Тестовый расчёт выполнен ✅</div>
+          <div style="margin-top:4px;">Около <strong>${calories} ккал</strong> в день</div>
         </div>
-      </div>
-    `;
+      `;
+    });
   });
-
-  // ============================
-  // Загрузка базы DISH_DB
-  // ============================
-  let DISH_DB = [];
-
-  (function initDishDb() {
-    const raw = window.DISH_DB;
-    if (Array.isArray(raw)) {
-      DISH_DB = raw;
-      return;
-    }
-    if (raw && typeof raw === 'object') {
-      DISH_DB = Object.keys(raw).map(key => {
-        const x = raw[key] || {};
-        return {
-          name: x.name || x.title || key,
-          protein: x.protein ?? x.protein100 ?? x.b ?? 0,
-          fat: x.fat ?? x.fats100 ?? x.j ?? 0,
-          carbs: x.carbs ?? x.carbs100 ?? x.u ?? 0,
-          kcal: x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? 0
-        };
-      });
-    }
-  })();
-
-  // ============================
-  // Автодополнение
-  // ============================
-  const dbSearchEl = document.getElementById('dbSearch');
-  const autocompleteListEl = document.getElementById('autocompleteList');
-
-  function filterDishDb(query) {
-    if (!query) return [];
-    const q = query.toLowerCase();
-    const items = DISH_DB.filter(item => {
-      const name = String(item.name || '').toLowerCase();
-      return name.includes(q);
-    });
-    return items.slice(0, 50);
-  }
-
-  function renderAutocomplete(items) {
-    autocompleteListEl.innerHTML = '';
-    if (!items.length) {
-      const empty = document.createElement('div');
-      empty.className = 'autocomplete-item';
-      empty.textContent = 'Ничего не найдено';
-      autocompleteListEl.appendChild(empty);
-      autocompleteListEl.style.display = 'block';
-      return;
-    }
-
-    items.forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'autocomplete-item';
-
-      const nameDiv = document.createElement('div');
-      nameDiv.textContent = item.name || '';
-
-      const kcalDiv = document.createElement('div');
-      kcalDiv.style.fontSize = '11px';
-      kcalDiv.style.color = '#9ca3af';
-      const kcal = item.kcal || 0;
-      kcalDiv.textContent = Math.round(kcal) + ' ккал';
-
-      row.appendChild(nameDiv);
-      row.appendChild(kcalDiv);
-
-      row.addEventListener('click', () => {
-        applyDishFromDb(item);
-        autocompleteListEl.style.display = 'none';
-      });
-
-      autocompleteListEl.appendChild(row);
-    });
-
-    autocompleteListEl.style.display = 'block';
-  }
-
-  function applyDishFromDb(item) {
-    const name = item.name || '';
-    const p = parseFloat(item.protein || 0);
-    const f = parseFloat(item.fat || 0);
-    const c = parseFloat(item.carbs || 0);
-    const k = parseFloat(item.kcal || 0);
-
-    dbSearchEl.value = name;
-    document.getElementById('dishName').value = name;
-    document.getElementById('protein100').value = p || '';
-    document.getElementById('fat100').value = f || '';
-    document.getElementById('carbs100').value = c || '';
-    document.getElementById('kcal100').value = k || '';
-  }
-
-  dbSearchEl.addEventListener('input', () => {
-    const query = dbSearchEl.value.trim();
-    if (!query) {
-      autocompleteListEl.style.display = 'none';
-      return;
-    }
-    const items = filterDishDb(query);
-    renderAutocomplete(items);
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!autocompleteListEl.contains(e.target) && e.target !== dbSearchEl) {
-      autocompleteListEl.style.display = 'none';
-    }
-  });
-
-  // ============================
-  // Карточки блюд (localStorage)
-  // ============================
-  const STORAGE_CARDS_KEY = 'devickaya_cards_v1';
-  const cardsListEl = document.getElementById('cardsList');
-  const btnSaveDish = document.getElementById('btnSaveDish');
-
-  function loadCards() {
-    try {
-      const raw = localStorage.getItem(STORAGE_CARDS_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) {
-      console.log('cards parse error', e);
-      return [];
-    }
-  }
-
-  function saveCards(list) {
-    localStorage.setItem(STORAGE_CARDS_KEY, JSON.stringify(list));
-    updateDishSelect();
-  }
-
-  function renderCards() {
-    const list = loadCards();
-    cardsListEl.innerHTML = '';
-
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'hint';
-      empty.textContent = 'Нет сохранённых блюд. Сохраните первое блюдо выше.';
-      cardsListEl.appendChild(empty);
-      return;
-    }
-
-    list.forEach(card => {
-      const wrap = document.createElement('div');
-      wrap.className = 'card-preview';
-
-      const nameDiv = document.createElement('div');
-      nameDiv.innerHTML = '<strong>' + card.name + '</strong>';
-
-      const line100 = document.createElement('div');
-      line100.textContent = `100 г: Б ${card.p} • Ж ${card.f} • У ${card.c} • ${card.k} ккал`;
-
-      wrap.appendChild(nameDiv);
-      wrap.appendChild(line100);
-
-      if (card.w) {
-        const wLine = document.createElement('div');
-        const kcalPortion = Math.round(card.k * card.w / 100);
-        wLine.textContent = `${card.w} г: ${kcalPortion} ккал`;
-        wrap.appendChild(wLine);
-      }
-
-      const actions = document.createElement('div');
-      actions.style.marginTop = '8px';
-      actions.style.display = 'flex';
-      actions.style.gap = '8px';
-
-      const btnCopy = document.createElement('button');
-      btnCopy.className = 'btn-small';
-      btnCopy.textContent = 'Копировать';
-      btnCopy.addEventListener('click', () => {
-        const base = `🍽 ${card.name}
-100 г: Б ${card.p} г, Ж ${card.f} г, У ${card.c} г, ${card.k} ккал`;
-        const portionStr = card.w
-          ? `\n${card.w} г: ${Math.round(card.k * card.w / 100)} ккал`
-          : '';
-        navigator.clipboard.writeText(base + portionStr)
-          .then(() => alert('Карточка скопирована ✅'))
-          .catch(() => alert('Не удалось скопировать ❌'));
-      });
-
-      const btnDel = document.createElement('button');
-      btnDel.className = 'btn-small btn-danger';
-      btnDel.textContent = 'Удалить';
-      btnDel.addEventListener('click', () => {
-        if (!confirm('Удалить карточку блюда?')) return;
-        const updated = loadCards().filter(x => x.id !== card.id);
-        saveCards(updated);
-        renderCards();
-      });
-
-      actions.appendChild(btnCopy);
-      actions.appendChild(btnDel);
-      wrap.appendChild(actions);
-
-      cardsListEl.appendChild(wrap);
-    });
-  }
-
-  btnSaveDish.addEventListener('click', () => {
-    const name = document.getElementById('dishName').value.trim();
-    const p = parseFloat(document.getElementById('protein100').value || '0');
-    const f = parseFloat(document.getElementById('fat100').value || '0');
-    const c = parseFloat(document.getElementById('carbs100').value || '0');
-    const k = parseFloat(document.getElementById('kcal100').value || '0');
-    const w = parseFloat(document.getElementById('portion').value || '0');
-
-    if (!name) {
-      alert('Введите название блюда');
-      return;
-    }
-
-    const cards = loadCards();
-    cards.unshift({
-      id: Date.now().toString(),
-      name,
-      p,
-      f,
-      c,
-      k,
-      w: w || null
-    });
-    saveCards(cards);
-    renderCards();
-  });
-
-  // ============================
-  // Дневник питания
-  // ============================
-  const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
-  const diaryListEl = document.getElementById('diaryList');
-  const btnAddMeal = document.getElementById('btnAddMeal');
-
-  function loadDiary() {
-    try {
-      const raw = localStorage.getItem(STORAGE_DIARY_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) {
-      console.log('diary parse error', e);
-      return [];
-    }
-  }
-
-  function saveDiary(list) {
-    localStorage.setItem(STORAGE_DIARY_KEY, JSON.stringify(list));
-  }
-
-  function updateDishSelect() {
-    const select = document.getElementById('mealDishSelect');
-    const cards = loadCards();
-    select.innerHTML = '';
-    const empty = document.createElement('option');
-    empty.value = '';
-    empty.textContent = '—';
-    select.appendChild(empty);
-    cards.forEach(card => {
-      const opt = document.createElement('option');
-      opt.value = card.id;
-      opt.textContent = card.name;
-      select.appendChild(opt);
-    });
-  }
-
-  function renderDiary() {
-    const diary = loadDiary();
-    diaryListEl.innerHTML = '';
-
-    if (!diary.length) {
-      const empty = document.createElement('div');
-      empty.className = 'hint';
-      empty.textContent = 'Записей пока нет.';
-      diaryListEl.appendChild(empty);
-      return;
-    }
-
-    diary.forEach(entry => {
-      const wrap = document.createElement('div');
-      wrap.className = 'card-preview';
-
-      const title = document.createElement('div');
-      title.innerHTML = `<strong>${entry.date} ${entry.time}</strong> — ${entry.name}`;
-
-      const line = document.createElement('div');
-      line.textContent = `${entry.portion} г • ${entry.kcal} ккал`;
-
-      wrap.appendChild(title);
-      wrap.appendChild(line);
-
-      diaryListEl.appendChild(wrap);
-    });
-  }
-
-  btnAddMeal.addEventListener('click', () => {
-    const date = document.getElementById('mealDate').value;
-    const time = document.getElementById('mealTime').value;
-    const type = document.getElementById('mealType').value;
-    const dishId = document.getElementById('mealDishSelect').value;
-    const customName = document.getElementById('mealCustomName').value.trim();
-    const portion = parseFloat(document.getElementById('mealPortion').value || '0');
-
-    if (!date || !time || !portion) {
-      alert('Введите дату, время и порцию');
-      return;
-    }
-
-    let name = customName;
-    let p = 0, f = 0, c = 0, k = 0;
-
-    if (dishId) {
-      const cards = loadCards();
-      const card = cards.find(x => x.id === dishId);
-      if (card) {
-        name = card.name;
-        p = card.p;
-        f = card.f;
-        c = card.c;
-        k = card.k;
-      }
-    }
-
-    if (!name) {
-      alert('Укажите блюдо (выберите из списка или введите своё)');
-      return;
-    }
-
-    const kcal = Math.round(k * portion / 100);
-
-    const diary = loadDiary();
-    diary.unshift({
-      id: Date.now().toString(),
-      date,
-      time,
-      type,
-      name,
-      portion,
-      kcal,
-      p, f, c, k
-    });
-    saveDiary(diary);
-    renderDiary();
-  });
-
-  // ============================
-  // INIT: дата/время + рендер
-  // ============================
-  (function initDateTime() {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    document.getElementById('mealDate').value = `${yyyy}-${mm}-${dd}`;
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    document.getElementById('mealTime').value = `${hh}:${min}`;
-  })();
-
-  renderCards();
-  updateDishSelect();
-  renderDiary();
 </script>
 </body>
 </html>
