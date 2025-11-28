@@ -369,376 +369,287 @@
 
       <div class="field">
         <label>Калории / 100 г</label>
-        <input id="kcal100"
-            <!DOCTYPE html>
-            <html lang="ru">
-            <head>
-              <meta charset="UTF-8" />
-              <title>Devickaya — Калькулятор калорий & дневник питания</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <input id="kcal100" 
+          <input id="kcal100" type="number" step="1" />
+      </div>
 
-              <style>
-                :root {
-                  --bg: #020617;
-                  --bg-soft: #0f172a;
-                  --accent: #22c55e;
-                  --accent-blue: #0ea5e9;
-                  --text-main: #f9fafb;
-                  --text-muted: #9ca3af;
-                  --border: #334155;
-                }
+      <div class="field">
+        <label>Масса порции (г)</label>
+        <input id="portion" type="number" />
+      </div>
 
-                * {
-                  box-sizing: border-box;
-                  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-                }
+      <button class="btn" onclick="saveDishCard()">Сохранить блюдо</button>
 
-                body {
-                  margin: 0;
-                  padding: 0;
-                  background: #020617;
-                  color: var(--text-main);
-                  display: flex;
-                  justify-content: center;
-                  min-height: 100vh;
-                }
+      <div id="cardsList" style="margin-top:16px;"></div>
+    </div>
 
-                .app {
-                  width: 100%;
-                  max-width: 520px;
-                  padding: 14px;
-                }
+    <!-- TAB 3: ДНЕВНИК -->
+    <div id="tab-diary" class="tab">
+      <div class="field">
+        <label>Дата</label>
+        <input id="mealDate" type="date" />
+      </div>
 
-                .card {
-                  background: #0f172a;
-                  border-radius: 22px;
-                  border: 1px solid var(--border);
-                  padding: 14px;
-                  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
-                }
+      <div class="field">
+        <label>Время</label>
+        <input id="mealTime" type="time" />
+      </div>
 
-                /* Header */
-                .header {
-                  display: flex;
-                  gap: 12px;
-                  margin-bottom: 14px;
-                }
+      <div class="field">
+        <label>Тип приёма пищи</label>
+        <select id="mealType">
+          <option value="breakfast">Завтрак</option>
+          <option value="lunch">Обед</option>
+          <option value="dinner">Ужин</option>
+          <option value="snack">Перекус</option>
+        </select>
+      </div>
 
-                .brand-logo-wrapper {
-                  flex-shrink: 0;
-                  width: 80px;
-                  height: 80px;
-                  border-radius: 20px;
-                  overflow: hidden;
-                  border: 1px solid var(--border);
-                }
+      <div class="field">
+        <label>Блюдо из карточек</label>
+        <select id="mealDishSelect"></select>
+      </div>
 
-                .brand-logo-wrapper img {
-                  width: 100%;
-                  height: 100%;
-                  object-fit: cover;
-                }
+      <div class="field">
+        <label>Или своё блюдо</label>
+        <input id="mealCustomName" type="text" />
+      </div>
 
-                .header-main {
-                  flex: 1;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                  justify-content: center;
-                }
+      <div class="field">
+        <label>Порция (г)</label>
+        <input id="mealPortion" type="number" />
+      </div>
 
-                .logo-pill {
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 6px;
-                  background: #020617;
-                  padding: 4px 10px;
-                  border-radius: 999px;
-                  border: 1px solid var(--border);
-                  font-size: 11px;
-                  color: var(--text-muted);
-                  width: fit-content;
-                }
+      <button class="btn" onclick="addMeal()">Добавить в дневник</button>
 
-                .logo-dot {
-                  width: 7px;
-                  height: 7px;
-                  background: var(--accent);
-                  border-radius: 999px;
-                }
+      <div id="diaryList" style="margin-top:18px;"></div>
+    </div>
+  </div>
+</div>
 
-                h1 {
-                  font-size: 18px;
-                  margin: 0;
-                }
+<!-- ===== подключение базы блюд ===== -->
+<script src="dish_db_from_excel.js"></script>
 
-                .header-subtitle {
-                  font-size: 12px;
-                  color: var(--text-muted);
-                }
+<script>
+/* ================================
+      ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+===================================*/
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
 
-                .chip-beta {
-                  align-self: flex-start;
-                  margin-left: auto;
-                  padding: 4px 8px;
-                  border-radius: 999px;
-                  font-size: 11px;
-                  border: 1px solid var(--border);
-                  color: var(--text-muted);
-                }
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
 
-                /* Tabs */
-                .tabs {
-                  margin-top: 4px;
-                  display: flex;
-                  background: #020617;
-                  border-radius: 999px;
-                  border: 1px solid var(--border);
-                  padding: 3px;
-                  gap: 3px;
-                }
+/* ================================
+      КАЛЬКУЛЯТОР КАЛОРИЙ
+===================================*/
+function calculate(){
+  const gender = document.getElementById("gender").value;
+  const age = +document.getElementById("age").value;
+  const h = +document.getElementById("height").value;
+  const w = +document.getElementById("weight").value;
+  const activity = +document.getElementById("activity").value;
 
-                .tab-btn {
-                  flex: 1;
-                  background: transparent;
-                  border: none;
-                  border-radius: 999px;
-                  padding: 8px;
-                  font-size: 13px;
-                  color: var(--text-muted);
-                  cursor: pointer;
-                }
+  if(!age||!h||!w){
+    alert("Заполните возраст, рост и вес");
+    return;
+  }
 
-                .tab-btn.active {
-                  background: linear-gradient(120deg, rgba(34, 197, 94, 0.4), rgba(14, 165, 233, 0.4));
-                  color: var(--text-main);
-                  font-weight: 600;
-                }
+  let bmr = gender==="male"
+    ? 10*w + 6.25*h - 5*age + 5
+    : 10*w + 6.25*h - 5*age - 161;
 
-                .tab {
-                  display: none;
-                  margin-top: 16px;
-                }
+  let maintain = bmr * activity;
 
-                .tab.active {
-                  display: block;
-                }
+  let html = `
+    <div class="result-card">
+      <div class="result-row"><div>Поддержание:</div><div>${Math.round(maintain)} ккал</div></div>
+    </div>
+  `;
 
-                /* Inputs */
-                .field {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                  margin-bottom: 10px;
-                }
+  document.getElementById("calcResult").innerHTML = html;
+}
 
-                label {
-                  font-size: 12px;
-                  color: var(--text-muted);
-                }
+/* ================================
+      ЗАГРУЗКА БАЗЫ DISH_DB
+===================================*/
 
-                input, select {
-                  width: 100%;
-                  padding: 8px;
-                  border-radius: 12px;
-                  background: #020617;
-                  border: 1px solid var(--border);
-                  color: var(--text-main);
-                  font-size: 14px;
-                }
+let DISH_DB = [];
 
-                input:focus,
-                select:focus {
-                  outline: none;
-                  border-color: var(--accent);
-                }
+// поддерживаем объект и массив
+if (Array.isArray(window.DISH_DB)) {
+  DISH_DB = window.DISH_DB;
+} else if (typeof window.DISH_DB === "object" && window.DISH_DB !== null) {
+  DISH_DB = Object.keys(window.DISH_DB).map(key=>{
+    const x = window.DISH_DB[key];
+    return {
+      name: x.name || x.title || key,
+      protein: x.protein || x.protein100 || x.b || 0,
+      fat: x.fat || x.fats100 || x.j || 0,
+      carbs: x.carbs || x.carbs100 || x.u || 0,
+      kcal: x.kcal || x.kcal100 || x.calories || x.kal || 0
+    };
+  });
+}
 
-                .btn {
-                  width: 100%;
-                  padding: 10px;
-                  border-radius: 999px;
-                  background: linear-gradient(120deg, #22c55e, #4ade80);
-                  border: none;
-                  font-size: 14px;
-                  font-weight: 600;
-                  color: #022c22;
-                  margin-top: 14px;
-                }
+/* ================================
+      АВТОДОПОЛНЕНИЕ
+===================================*/
 
-                /* ======================================
-                   Card Previews & Macros
-                ======================================*/
-                .result-card,
-                .card-preview {
-                  background: #0f172a;
-                  padding: 12px;
-                  border-radius: 16px;
-                  border: 1px solid var(--border);
-                  margin-top: 14px;
-                }
+function onDbSearch(){
+  const q = document.getElementById('dbSearch').value.trim().toLowerCase();
+  const box = document.getElementById('autocompleteList');
 
-                .result-row,
-                .macros-row {
-                  display: flex;
-                  justify-content: space-between;
-                  margin-top: 6px;
-                }
+  if(!q){
+    box.style.display="none";
+    return;
+  }
 
-                .macros-pill {
-                  padding: 4px 8px;
-                  background: #020617;
-                  border-radius: 999px;
-                  border: 1px solid var(--border);
-                  font-size: 11px;
-                }
+  const items = DISH_DB.filter(x => (x.name||"").toLowerCase().includes(q)).slice(0,40);
 
-                /* ======================================
-                   Autocomplete
-                ======================================*/
+  if(!items.length){
+    box.innerHTML = '<div class="autocomplete-item">Ничего не найдено</div>';
+    box.style.display = 'block';
+    return;
+  }
 
-                .autocomplete-wrapper {
-                  position: relative;
-                }
+  box.innerHTML = items.map(x=>`
+    <div class="autocomplete-item" onclick='applyDish(${JSON.stringify(x)})'>
+      <div>${x.name}</div>
+      <div style="font-size:11px;color:#9ca3af">${Math.round(x.kcal)} ккал</div>
+    </div>
+  `).join('');
 
-                .autocomplete-list {
-                  position: absolute;
-                  top: 100%;
-                  left: 0;
-                  right: 0;
-                  background: #0f172a;
-                  border-radius: 12px;
-                  border: 1px solid var(--border);
-                  margin-top: 4px;
-                  z-index: 1000;
-                  max-height: 230px;
-                  overflow-y: auto;
-                }
+  box.style.display="block";
+}
 
-                .autocomplete-item {
-                  padding: 8px;
-                  border-bottom: 1px solid var(--border);
-                  cursor: pointer;
-                  display: flex;
-                  justify-content: space-between;
-                }
+function applyDish(item){
+  document.getElementById("dbSearch").value = item.name;
+  document.getElementById("dishName").value = item.name;
+  document.getElementById("protein100").value = item.protein;
+  document.getElementById("fat100").value = item.fat;
+  document.getElementById("carbs100").value = item.carbs;
+  document.getElementById("kcal100").value = item.kcal;
 
-                .autocomplete-item:hover {
-                  background: #1e293b;
-                }
+  document.getElementById("autocompleteList").style.display="none";
+}
 
-                .hint {
-                  font-size: 11px;
-                  color: var(--text-muted);
-                  margin-top: 4px;
-                }
-              </style>
-            </head>
+/* ================================
+      КАРТОЧКИ БЛЮД (localStorage)
+===================================*/
+function loadCards(){
+  return JSON.parse(localStorage.getItem("cards_v1")||"[]");
+}
+function saveCards(list){
+  localStorage.setItem("cards_v1",JSON.stringify(list));
+}
+function renderCards(){
+  const list = loadCards();
+  const box = document.getElementById("cardsList");
+  if(!list.length){
+    box.innerHTML = '<div class="hint">Нет сохранённых блюд</div>';
+    return;
+  }
+  box.innerHTML = list.map(x=>`
+    <div class="card-preview">
+      <div><b>${x.name}</b></div>
+      <div>100 г: Б ${x.p} • Ж ${x.f} • У ${x.c} • ${x.k} ккал</div>
+      ${x.w ? `<div>${x.w} г: ${Math.round(x.k*x.w/100)} ккал</div>` : ""}
+    </div>
+  `).join('');
+  updateDishSelect();
+}
+function saveDishCard(){
+  const name = document.getElementById("dishName").value.trim();
+  const p = +document.getElementById("protein100").value;
+  const f = +document.getElementById("fat100").value;
+  const c = +document.getElementById("carbs100").value;
+  const k = +document.getElementById("kcal100").value;
+  const w = +document.getElementById("portion").value || null;
 
-            <body>
-            <div class="app">
-              <div class="card">
+  if(!name){ alert("Введите название блюда"); return; }
 
-                <!-- HEADER -->
-                <div class="header">
-                  <div class="brand-logo-wrapper">
-                    <img src="brand-logo-devickaya.png" />
-                  </div>
+  const list = loadCards();
+  list.unshift({ id: Date.now(), name, p, f, c, k, w });
+  saveCards(list);
+  renderCards();
+}
 
-                  <div class="header-main">
-                    <div class="logo-pill">
-                      <div class="logo-dot"></div>
-                      Devickaya • MiniApp
-                    </div>
+/* ================================
+      ДНЕВНИК ПИТАНИЯ
+===================================*/
+function loadDiary(){
+  return JSON.parse(localStorage.getItem("diary_v1")||"[]");
+}
+function saveDiary(x){
+  localStorage.setItem("diary_v1",JSON.stringify(x));
+}
 
-                    <h1>Калькулятор калорий & дневник</h1>
-                    <div class="header-subtitle">
-                      Подберите норму, создавайте блюда и отслеживайте питание
-                    </div>
-                  </div>
+function updateDishSelect(){
+  const select = document.getElementById("mealDishSelect");
+  const list = loadCards();
+  select.innerHTML = '<option value="">—</option>' +
+    list.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+}
 
-                  <div class="chip-beta">beta</div>
-                </div>
+function addMeal(){
+  const date = document.getElementById("mealDate").value;
+  const time = document.getElementById("mealTime").value;
+  const type = document.getElementById("mealType").value;
+  const sel = document.getElementById("mealDishSelect").value;
+  const custom = document.getElementById("mealCustomName").value.trim();
+  const portion = +document.getElementById("mealPortion").value;
 
-                <!-- TABS -->
-                <div class="tabs">
-                  <button class="tab-btn active" data-tab="calc">Калькулятор</button>
-                  <button class="tab-btn" data-tab="cards">Карточки блюд</button>
-                  <button class="tab-btn" data-tab="diary">Дневник</button>
-                </div>
+  if(!date || !time || !portion){ alert("Введите дату, время, порцию"); return; }
 
-                <!-- TAB 1: КАЛЬКУЛЯТОР -->
-                <div id="tab-calc" class="tab active">
+  let name="", p=0,f=0,c=0,k=0;
 
-                  <div class="field">
-                    <label>Пол</label>
-                    <select id="gender">
-                      <option value="female">Женщина</option>
-                      <option value="male">Мужчина</option>
-                    </select>
-                  </div>
+  if(sel){
+    const dish = loadCards().find(x=>x.id==sel);
+    name = dish.name;
+    p=dish.p; f=dish.f; c=dish.c; k=dish.k;
+  } else {
+    name = custom;
+  }
 
-                  <div class="field">
-                    <label>Возраст</label>
-                    <input id="age" type="number" placeholder="30" />
-                  </div>
+  const diary = loadDiary();
+  diary.unshift({
+    id: Date.now(),
+    date, time, type,
+    name, p,f,c,k,
+    portion,
+    kcal: Math.round(k*portion/100)
+  });
+  saveDiary(diary);
+  renderDiary();
+}
 
-                  <div class="field">
-                    <label>Рост (см)</label>
-                    <input id="height" type="number" placeholder="170" />
-                  </div>
+function renderDiary(){
+  const diary = loadDiary();
+  const box = document.getElementById("diaryList");
 
-                  <div class="field">
-                    <label>Вес (кг)</label>
-                    <input id="weight" type="number" placeholder="60" />
-                  </div>
+  if(!diary.length){
+    box.innerHTML='<div class="hint">Записей пока нет</div>';
+    return;
+  }
 
-                  <div class="field">
-                    <label>Уровень активности</label>
-                    <select id="activity">
-                      <option value="1.2">Минимальная</option>
-                      <option value="1.375">Лёгкая</option>
-                      <option value="1.55">Средняя</option>
-                      <option value="1.725">Высокая</option>
-                    </select>
-                  </div>
+  box.innerHTML = diary.map(x=>`
+    <div class="card-preview">
+      <div><b>${x.date} ${x.time}</b> — ${x.name}</div>
+      <div>${x.portion} г • ${x.kcal} ккал</div>
+    </div>
+  `).join('');
+}
 
-                  <button class="btn" onclick="calculate()">Рассчитать</button>
+/* INIT */
+renderCards();
+renderDiary();
+updateDishSelect();
+</script>
 
-                  <div id="calcResult"></div>
-                </div>
-
-                <!-- TAB 2: КАРТОЧКИ БЛЮД -->
-                <div id="tab-cards" class="tab">
-
-                  <div class="field autocomplete-wrapper">
-                    <label>Выбрать блюдо из базы</label>
-                    <input id="dbSearch" type="text" placeholder="Начните вводить..." oninput="onDbSearch()" autocomplete="off" />
-                    <div id="autocompleteList" class="autocomplete-list" style="display:none;"></div>
-                    <div class="hint">
-                      Если блюдо есть в базе — выберите его. Если нет — введите своё ниже.
-                    </div>
-                  </div>
-
-                  <div class="field">
-                    <label>Название блюда</label>
-                    <input id="dishName" type="text" />
-                  </div>
-
-                  <div class="field">
-                    <label>Белки / 100 г</label>
-                    <input id="protein100" type="number" step="0.1" />
-                  </div>
-
-                  <div class="field">
-                    <label>Жиры / 100 г</label>
-                    <input id="fat100" type="number" step="0.1" />
-                  </div>
-
-                  <div class="field">
-                    <label>Углеводы / 100 г</label>
-                    <input id="carbs100" type="number" step="0.1" />
-                  </div>
-
-                  <div class="field">
-                    <label>Калории / 100 г</label>
-                    <input id="kcal100"
+</body>
+</html>
