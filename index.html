@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Devickaya — Калькулятор калорий & дневник (шаг 2)</title>
+  <title>Devickaya — Калькулятор калорий & дневник (шаг 3)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -242,7 +242,7 @@
         </div>
         <h1>Калькулятор калорий & дневник</h1>
         <div class="header-subtitle">
-          Шаг 2 — калькулятор + карточки блюд (без базы)
+          Шаг 3 — калькулятор + карточки + дневник (без базы)
         </div>
       </div>
       <div class="chip-beta">beta</div>
@@ -336,11 +336,46 @@
       <div id="cardsList"></div>
     </div>
 
-    <!-- TAB: ДНЕВНИК (пока заглушка) -->
+    <!-- TAB: ДНЕВНИК ПИТАНИЯ -->
     <div id="tab-diary" class="tab">
-      <p class="hint">
-        Здесь позже будет дневник питания с сохранением по дням и приёмам пищи.
-      </p>
+      <div class="field">
+        <label>Дата</label>
+        <input id="mealDate" type="date" />
+      </div>
+
+      <div class="field">
+        <label>Время</label>
+        <input id="mealTime" type="time" />
+      </div>
+
+      <div class="field">
+        <label>Тип приёма пищи</label>
+        <select id="mealType">
+          <option value="breakfast">Завтрак</option>
+          <option value="lunch">Обед</option>
+          <option value="dinner">Ужин</option>
+          <option value="snack">Перекус</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Блюдо из карточек</label>
+        <select id="mealDishSelect"></select>
+      </div>
+
+      <div class="field">
+        <label>Или своё блюдо</label>
+        <input id="mealCustomName" type="text" placeholder="Например, кофе с молоком" />
+      </div>
+
+      <div class="field">
+        <label>Порция (г)</label>
+        <input id="mealPortion" type="number" placeholder="Например, 200" />
+      </div>
+
+      <button class="btn" id="btnAddMeal">Добавить в дневник</button>
+
+      <div id="diaryList" style="margin-top:14px;"></div>
     </div>
   </div>
 </div>
@@ -420,6 +455,7 @@
 
     function saveCards(list) {
       localStorage.setItem(STORAGE_CARDS_KEY, JSON.stringify(list));
+      updateMealDishSelect();
     }
 
     function renderCards() {
@@ -509,18 +545,157 @@
       });
       saveCards(cards);
       renderCards();
-
-      // Лёгкая очистка полей
-      // document.getElementById('dishName').value = '';
-      // document.getElementById('protein100').value = '';
-      // document.getElementById('fat100').value = '';
-      // document.getElementById('carbs100').value = '';
-      // document.getElementById('kcal100').value = '';
-      // document.getElementById('portion').value = '';
     });
 
-    // При загрузке — показать карточки, если есть
+    // Дневник питания (localStorage)
+    const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
+    const diaryListEl = document.getElementById('diaryList');
+    const btnAddMeal = document.getElementById('btnAddMeal');
+
+    function loadDiary() {
+      try {
+        const raw = localStorage.getItem(STORAGE_DIARY_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.log('Ошибка чтения дневника', e);
+        return [];
+      }
+    }
+
+    function saveDiary(list) {
+      localStorage.setItem(STORAGE_DIARY_KEY, JSON.stringify(list));
+    }
+
+    function updateMealDishSelect() {
+      const select = document.getElementById('mealDishSelect');
+      if (!select) return;
+
+      const cards = loadCards();
+      select.innerHTML = '';
+
+      const optEmpty = document.createElement('option');
+      optEmpty.value = '';
+      optEmpty.textContent = '— выберите блюдо из карточек или введите своё —';
+      select.appendChild(optEmpty);
+
+      cards.forEach(function (card) {
+        const opt = document.createElement('option');
+        opt.value = card.id;
+        opt.textContent = card.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderDiary() {
+      const diary = loadDiary();
+      diaryListEl.innerHTML = '';
+
+      if (!diary.length) {
+        const empty = document.createElement('p');
+        empty.className = 'hint';
+        empty.textContent = 'Записей пока нет. Добавьте первый приём пищи.';
+        diaryListEl.appendChild(empty);
+        return;
+      }
+
+      diary.forEach(function (entry) {
+        const wrap = document.createElement('div');
+        wrap.className = 'card-preview';
+
+        const title = document.createElement('div');
+        const typeLabelMap = {
+          breakfast: 'Завтрак',
+          lunch: 'Обед',
+          dinner: 'Ужин',
+          snack: 'Перекус'
+        };
+        const typeLabel = typeLabelMap[entry.type] || entry.type;
+        title.innerHTML = '<strong>' + entry.date + ' ' + entry.time + '</strong> — ' + typeLabel;
+        wrap.appendChild(title);
+
+        const line = document.createElement('div');
+        line.style.marginTop = '4px';
+        line.textContent = entry.name + ' • ' + entry.portion + ' г • ' + entry.kcal + ' ккал';
+        wrap.appendChild(line);
+
+        diaryListEl.appendChild(wrap);
+      });
+    }
+
+    btnAddMeal.addEventListener('click', function () {
+      const date = document.getElementById('mealDate').value;
+      const time = document.getElementById('mealTime').value;
+      const type = document.getElementById('mealType').value;
+      const dishId = document.getElementById('mealDishSelect').value;
+      const customName = document.getElementById('mealCustomName').value.trim();
+      const portion = parseFloat(document.getElementById('mealPortion').value || '0');
+
+      if (!date || !time) {
+        alert('Укажите дату и время');
+        return;
+      }
+
+      if (!portion) {
+        alert('Укажите порцию в граммах');
+        return;
+      }
+
+      let name = customName;
+      let baseKcalPer100 = 0;
+
+      if (dishId) {
+        const cards = loadCards();
+        const card = cards.find(function (x) { return x.id === dishId; });
+        if (card) {
+          name = card.name;
+          baseKcalPer100 = card.k || 0;
+        }
+      }
+
+      if (!name) {
+        alert('Выберите блюдо из карточек или введите своё');
+        return;
+      }
+
+      const kcal = baseKcalPer100 ? Math.round(baseKcalPer100 * portion / 100) : 0;
+
+      const diary = loadDiary();
+      diary.unshift({
+        id: Date.now().toString(),
+        date: date,
+        time: time,
+        type: type,
+        name: name,
+        portion: portion,
+        kcal: kcal
+      });
+      saveDiary(diary);
+      renderDiary();
+    });
+
+    // Инициализация даты/времени по умолчанию
+    (function initDateTime() {
+      const dateInput = document.getElementById('mealDate');
+      const timeInput = document.getElementById('mealTime');
+      if (!dateInput || !timeInput) return;
+
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      dateInput.value = yyyy + '-' + mm + '-' + dd;
+
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      timeInput.value = hh + ':' + min;
+    })();
+
+    // При загрузке — отрисовать карточки, дневник, список блюд в селекте
     renderCards();
+    updateMealDishSelect();
+    renderDiary();
   });
 </script>
 </body>
