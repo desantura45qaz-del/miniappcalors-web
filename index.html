@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Devickaya — Калькулятор калорий & дневник (шаг 1)</title>
+  <title>Devickaya — Калькулятор калорий & дневник (шаг 2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -194,7 +194,23 @@
       cursor: pointer;
     }
 
-    .result-card {
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .btn-danger {
+      border-color: #ef4444;
+      color: #fecaca;
+    }
+
+    .result-card,
+    .card-preview {
       background: #0f172a;
       padding: 12px;
       border-radius: 16px;
@@ -226,7 +242,7 @@
         </div>
         <h1>Калькулятор калорий & дневник</h1>
         <div class="header-subtitle">
-          Шаг 1 — рабочий калькулятор, вкладки уже живые
+          Шаг 2 — калькулятор + карточки блюд (без базы)
         </div>
       </div>
       <div class="chip-beta">beta</div>
@@ -279,24 +295,57 @@
       <div id="calcResult" class="result-card" style="display:none;"></div>
     </div>
 
-    <!-- TAB: КАРТОЧКИ (пока заглушка) -->
+    <!-- TAB: КАРТОЧКИ БЛЮД -->
     <div id="tab-cards" class="tab">
+      <div class="field">
+        <label>Название блюда</label>
+        <input id="dishName" type="text" placeholder="Например, овсянка на воде" />
+      </div>
+
+      <div class="field">
+        <label>Белки / 100 г</label>
+        <input id="protein100" type="number" step="0.1" placeholder="г" />
+      </div>
+
+      <div class="field">
+        <label>Жиры / 100 г</label>
+        <input id="fat100" type="number" step="0.1" placeholder="г" />
+      </div>
+
+      <div class="field">
+        <label>Углеводы / 100 г</label>
+        <input id="carbs100" type="number" step="0.1" placeholder="г" />
+      </div>
+
+      <div class="field">
+        <label>Калории / 100 г</label>
+        <input id="kcal100" type="number" step="1" placeholder="ккал" />
+      </div>
+
+      <div class="field">
+        <label>Масса порции (г), опционально</label>
+        <input id="portion" type="number" placeholder="Например, 200" />
+      </div>
+
+      <button class="btn" id="btnSaveDish">Сохранить карточку блюда</button>
+
       <p class="hint">
-        Здесь позже появятся карточки блюд с БЖУ и подключением твоей базы.
+        Карточки сохраняются локально на устройстве (localStorage). При следующем открытии приложения они останутся.
       </p>
+
+      <div id="cardsList"></div>
     </div>
 
     <!-- TAB: ДНЕВНИК (пока заглушка) -->
     <div id="tab-diary" class="tab">
       <p class="hint">
-        Здесь позже будет дневник питания с сохранением в localStorage по дням.
+        Здесь позже будет дневник питания с сохранением по дням и приёмам пищи.
       </p>
     </div>
   </div>
 </div>
 
 <script>
-  // Ждём, пока загрузится DOM
   document.addEventListener('DOMContentLoaded', function () {
     // Переключение вкладок
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -317,7 +366,7 @@
       });
     });
 
-    // Полный калькулятор калорий (Mifflin-St Jeor)
+    // Калькулятор калорий
     const btnCalc = document.getElementById('btnCalc');
     const resultEl = document.getElementById('calcResult');
 
@@ -351,6 +400,127 @@
         <div style="margin-top:6px;">Для набора (+10%): ~ ${surplus} ккал/день</div>
       `;
     });
+
+    // Карточки блюд (localStorage)
+    const STORAGE_CARDS_KEY = 'devickaya_cards_v1';
+    const cardsListEl = document.getElementById('cardsList');
+    const btnSaveDish = document.getElementById('btnSaveDish');
+
+    function loadCards() {
+      try {
+        const raw = localStorage.getItem(STORAGE_CARDS_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.log('Ошибка чтения карточек', e);
+        return [];
+      }
+    }
+
+    function saveCards(list) {
+      localStorage.setItem(STORAGE_CARDS_KEY, JSON.stringify(list));
+    }
+
+    function renderCards() {
+      const list = loadCards();
+      cardsListEl.innerHTML = '';
+
+      if (!list.length) {
+        const empty = document.createElement('p');
+        empty.className = 'hint';
+        empty.textContent = 'Пока нет ни одной карточки. Добавьте своё первое блюдо.';
+        cardsListEl.appendChild(empty);
+        return;
+      }
+
+      list.forEach(function (card) {
+        const wrap = document.createElement('div');
+        wrap.className = 'card-preview';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.innerHTML = '<strong>' + card.name + '</strong>';
+        wrap.appendChild(nameDiv);
+
+        const macrosDiv = document.createElement('div');
+        macrosDiv.style.marginTop = '4px';
+        macrosDiv.textContent =
+          'На 100 г: Б ' + card.p + ' г • Ж ' + card.f + ' г • У ' + card.c + ' г • ' + card.k + ' ккал';
+        wrap.appendChild(macrosDiv);
+
+        if (card.w) {
+          const portionKcal = Math.round(card.k * card.w / 100);
+          const portionDiv = document.createElement('div');
+          portionDiv.style.marginTop = '4px';
+          portionDiv.textContent = card.w + ' г ≈ ' + portionKcal + ' ккал';
+          wrap.appendChild(portionDiv);
+        }
+
+        const actions = document.createElement('div');
+        actions.style.marginTop = '8px';
+        actions.style.display = 'flex';
+        actions.style.gap = '8px';
+
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn-small btn-danger';
+        btnDelete.textContent = 'Удалить';
+        btnDelete.addEventListener('click', function () {
+          if (!confirm('Удалить карточку блюда?')) return;
+          const updated = loadCards().filter(function (x) { return x.id !== card.id; });
+          saveCards(updated);
+          renderCards();
+        });
+
+        actions.appendChild(btnDelete);
+        wrap.appendChild(actions);
+
+        cardsListEl.appendChild(wrap);
+      });
+    }
+
+    btnSaveDish.addEventListener('click', function () {
+      const name = document.getElementById('dishName').value.trim();
+      const p = parseFloat(document.getElementById('protein100').value || '0');
+      const f = parseFloat(document.getElementById('fat100').value || '0');
+      const c = parseFloat(document.getElementById('carbs100').value || '0');
+      const k = parseFloat(document.getElementById('kcal100').value || '0');
+      const w = parseFloat(document.getElementById('portion').value || '0');
+
+      if (!name) {
+        alert('Введите название блюда');
+        return;
+      }
+
+      if (!p && !f && !c && !k) {
+        if (!confirm('Вы не заполнили БЖУ/ккал. Сохранить карточку только с названием?')) {
+          return;
+        }
+      }
+
+      const cards = loadCards();
+      cards.unshift({
+        id: Date.now().toString(),
+        name: name,
+        p: p || 0,
+        f: f || 0,
+        c: c || 0,
+        k: k || 0,
+        w: w || null
+      });
+      saveCards(cards);
+      renderCards();
+
+      // Лёгкая очистка полей
+      // document.getElementById('dishName').value = '';
+      // document.getElementById('protein100').value = '';
+      // document.getElementById('fat100').value = '';
+      // document.getElementById('carbs100').value = '';
+      // document.getElementById('kcal100').value = '';
+      // document.getElementById('portion').value = '';
+    });
+
+    // При загрузке — показать карточки, если есть
+    renderCards();
   });
 </script>
 </body>
