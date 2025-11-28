@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Devickaya — Калькулятор калорий & дневник (шаг 3)</title>
+  <title>Devickaya — Калькулятор калорий & дневник</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -224,6 +224,40 @@
       color: var(--text-muted);
       margin-top: 8px;
     }
+
+    /* Autocomplete */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-top: 4px;
+      z-index: 1000;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .autocomplete-item {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .autocomplete-item:hover {
+      background: #1e293b;
+    }
   </style>
 </head>
 
@@ -242,7 +276,7 @@
         </div>
         <h1>Калькулятор калорий & дневник</h1>
         <div class="header-subtitle">
-          Шаг 3 — калькулятор + карточки + дневник (без базы)
+          Калькулятор, карточки, дневник + база блюд
         </div>
       </div>
       <div class="chip-beta">beta</div>
@@ -297,6 +331,15 @@
 
     <!-- TAB: КАРТОЧКИ БЛЮД -->
     <div id="tab-cards" class="tab">
+      <div class="field autocomplete-wrapper">
+        <label>Выбрать блюдо из базы</label>
+        <input id="dbSearch" type="text" placeholder="Начните вводить название..." autocomplete="off" />
+        <div id="autocompleteList" class="autocomplete-list"></div>
+        <p class="hint">
+          Если блюдо есть в базе — выберите его. Если нет — введите своё ниже.
+        </p>
+      </div>
+
       <div class="field">
         <label>Название блюда</label>
         <input id="dishName" type="text" placeholder="Например, овсянка на воде" />
@@ -330,7 +373,7 @@
       <button class="btn" id="btnSaveDish">Сохранить карточку блюда</button>
 
       <p class="hint">
-        Карточки сохраняются локально на устройстве (localStorage). При следующем открытии приложения они останутся.
+        Карточки сохраняются локально на устройстве (localStorage).
       </p>
 
       <div id="cardsList"></div>
@@ -380,9 +423,14 @@
   </div>
 </div>
 
+<!-- Подключаем базу блюд из корня репозитория -->
+<script src="dish_db_from_excel.js"></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // =============================
     // Переключение вкладок
+    // =============================
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabs = document.querySelectorAll('.tab');
 
@@ -395,13 +443,13 @@
 
         btn.classList.add('active');
         const target = document.getElementById(targetId);
-        if (target) {
-          target.classList.add('active');
-        }
+        if (target) target.classList.add('active');
       });
     });
 
+    // =============================
     // Калькулятор калорий
+    // =============================
     const btnCalc = document.getElementById('btnCalc');
     const resultEl = document.getElementById('calcResult');
 
@@ -436,7 +484,141 @@
       `;
     });
 
+    // =============================
+    // База блюд из dish_db_from_excel.js
+    // =============================
+    let DISH_DB = [];
+
+    function initDishDb() {
+      try {
+        const raw = window.DISH_DB;
+        if (!raw) {
+          DISH_DB = [];
+          return;
+        }
+
+        if (Array.isArray(raw)) {
+          // Ожидаем массив объектов вида { name, protein, fat, carbs, kcal }
+          DISH_DB = raw.map(function (x, index) {
+            const name = String(x.name || x.title || ('Блюдо ' + (index + 1)));
+            return {
+              name: name,
+              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? 0) || 0,
+              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? 0) || 0,
+              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? 0) || 0,
+              kcal: parseFloat(x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? 0) || 0
+            };
+          });
+        } else if (typeof raw === 'object') {
+          // Если это объект с ключами
+          DISH_DB = Object.keys(raw).map(function (key) {
+            const x = raw[key] || {};
+            const name = String(x.name || x.title || key);
+            return {
+              name: name,
+              protein: parseFloat(x.protein ?? x.protein100 ?? x.b ?? 0) || 0,
+              fat: parseFloat(x.fat ?? x.fats100 ?? x.j ?? 0) || 0,
+              carbs: parseFloat(x.carbs ?? x.carbs100 ?? x.u ?? 0) || 0,
+              kcal: parseFloat(x.kcal ?? x.kcal100 ?? x.calories ?? x.kal ?? 0) || 0
+            };
+          });
+        } else {
+          DISH_DB = [];
+        }
+      } catch (e) {
+        console.log('Ошибка инициализации базы блюд', e);
+        DISH_DB = [];
+      }
+    }
+
+    initDishDb();
+
+    const dbSearchEl = document.getElementById('dbSearch');
+    const autocompleteListEl = document.getElementById('autocompleteList');
+
+    function filterDishDb(query) {
+      if (!query) return [];
+      const q = query.toLowerCase();
+      const items = DISH_DB.filter(function (item) {
+        const name = String(item.name || '').toLowerCase();
+        return name.includes(q);
+      });
+      return items.slice(0, 50);
+    }
+
+    function renderAutocomplete(items) {
+      autocompleteListEl.innerHTML = '';
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'autocomplete-item';
+        empty.textContent = 'Ничего не найдено';
+        autocompleteListEl.appendChild(empty);
+        autocompleteListEl.style.display = 'block';
+        return;
+      }
+
+      items.forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'autocomplete-item';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.textContent = item.name || '';
+
+        const kcalDiv = document.createElement('div');
+        kcalDiv.style.fontSize = '11px';
+        kcalDiv.style.color = '#9ca3af';
+        kcalDiv.textContent = Math.round(item.kcal || 0) + ' ккал';
+
+        row.appendChild(nameDiv);
+        row.appendChild(kcalDiv);
+
+        row.addEventListener('click', function () {
+          applyDishFromDb(item);
+          autocompleteListEl.style.display = 'none';
+        });
+
+        autocompleteListEl.appendChild(row);
+      });
+
+      autocompleteListEl.style.display = 'block';
+    }
+
+    function applyDishFromDb(item) {
+      const name = item.name || '';
+      const p = parseFloat(item.protein || 0) || 0;
+      const f = parseFloat(item.fat || 0) || 0;
+      const c = parseFloat(item.carbs || 0) || 0;
+      const k = parseFloat(item.kcal || 0) || 0;
+
+      dbSearchEl.value = name;
+      document.getElementById('dishName').value = name;
+      document.getElementById('protein100').value = p || '';
+      document.getElementById('fat100').value = f || '';
+      document.getElementById('carbs100').value = c || '';
+      document.getElementById('kcal100').value = k || '';
+    }
+
+    if (dbSearchEl) {
+      dbSearchEl.addEventListener('input', function () {
+        const query = dbSearchEl.value.trim();
+        if (!query) {
+          autocompleteListEl.style.display = 'none';
+          return;
+        }
+        const items = filterDishDb(query);
+        renderAutocomplete(items);
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (!autocompleteListEl.contains(e.target) && e.target !== dbSearchEl) {
+        autocompleteListEl.style.display = 'none';
+      }
+    });
+
+    // =============================
     // Карточки блюд (localStorage)
+    // =============================
     const STORAGE_CARDS_KEY = 'devickaya_cards_v1';
     const cardsListEl = document.getElementById('cardsList');
     const btnSaveDish = document.getElementById('btnSaveDish');
@@ -547,7 +729,9 @@
       renderCards();
     });
 
+    // =============================
     // Дневник питания (localStorage)
+    // =============================
     const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
     const diaryListEl = document.getElementById('diaryList');
     const btnAddMeal = document.getElementById('btnAddMeal');
@@ -692,7 +876,7 @@
       timeInput.value = hh + ':' + min;
     })();
 
-    // При загрузке — отрисовать карточки, дневник, список блюд в селекте
+    // Стартовый рендер
     renderCards();
     updateMealDishSelect();
     renderDiary();
