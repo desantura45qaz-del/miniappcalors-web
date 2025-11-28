@@ -776,7 +776,7 @@
     });
 
     // =============================
-    // Дневник питания (localStorage)
+    // Дневник питания (localStorage) с БЖУ
     // =============================
     const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
     const diaryListEl = document.getElementById('diaryList');
@@ -858,9 +858,15 @@
       }
 
       let totalKcal = 0;
+      let totalP = 0;
+      let totalF = 0;
+      let totalC = 0;
 
       filtered.forEach(function (entry) {
         totalKcal += Number(entry.kcal || 0);
+        totalP += Number(entry.protein || 0);
+        totalF += Number(entry.fat || 0);
+        totalC += Number(entry.carbs || 0);
 
         const wrap = document.createElement('div');
         wrap.className = 'card-preview';
@@ -878,21 +884,42 @@
 
         const line = document.createElement('div');
         line.style.marginTop = '4px';
-        line.textContent = entry.name + ' • ' + entry.portion + ' г • ' + entry.kcal + ' ккал';
-        wrap.appendChild(line);
 
+        const p = Number(entry.protein || 0);
+        const f = Number(entry.fat || 0);
+        const c = Number(entry.carbs || 0);
+
+        if (p || f || c) {
+          line.textContent =
+            entry.name +
+            ' • ' + entry.portion + ' г' +
+            ' • ' + entry.kcal + ' ккал' +
+            ' • Б ' + p.toFixed(1) + ' г' +
+            ' • Ж ' + f.toFixed(1) + ' г' +
+            ' • У ' + c.toFixed(1) + ' г';
+        } else {
+          // старые записи или кастом без БЖУ
+          line.textContent =
+            entry.name + ' • ' + entry.portion + ' г • ' + entry.kcal + ' ккал';
+        }
+
+        wrap.appendChild(line);
         diaryListEl.appendChild(wrap);
       });
 
       if (diarySummaryEl) {
         diarySummaryEl.style.display = 'block';
-        if (diaryFilterMode === 'all') {
-          diarySummaryEl.textContent =
-            'Итого по всем записям: ' + totalKcal + ' ккал';
-        } else {
-          diarySummaryEl.textContent =
-            'Итого за ' + diaryFilterDate + ': ' + totalKcal + ' ккал';
-        }
+
+        const prefix = (diaryFilterMode === 'all')
+          ? 'Итого по всем записям: '
+          : 'Итого за ' + diaryFilterDate + ': ';
+
+        diarySummaryEl.textContent =
+          prefix +
+          totalKcal + ' ккал • ' +
+          'Б ' + totalP.toFixed(1) + ' г • ' +
+          'Ж ' + totalF.toFixed(1) + ' г • ' +
+          'У ' + totalC.toFixed(1) + ' г';
       }
     }
 
@@ -916,6 +943,9 @@
 
       let name = customName;
       let baseKcalPer100 = 0;
+      let baseP100 = 0;
+      let baseF100 = 0;
+      let baseC100 = 0;
 
       if (dishId) {
         const cards = loadCards();
@@ -923,6 +953,9 @@
         if (card) {
           name = card.name;
           baseKcalPer100 = card.k || 0;
+          baseP100 = card.p || 0;
+          baseF100 = card.f || 0;
+          baseC100 = card.c || 0;
         }
       }
 
@@ -932,6 +965,9 @@
       }
 
       const kcal = baseKcalPer100 ? Math.round(baseKcalPer100 * portion / 100) : 0;
+      const protein = baseP100 ? +(baseP100 * portion / 100).toFixed(1) : 0;
+      const fat = baseF100 ? +(baseF100 * portion / 100).toFixed(1) : 0;
+      const carbs = baseC100 ? +(baseC100 * portion / 100).toFixed(1) : 0;
 
       const diary = loadDiary();
       diary.unshift({
@@ -941,7 +977,10 @@
         type: type,
         name: name,
         portion: portion,
-        kcal: kcal
+        kcal: kcal,
+        protein: protein,
+        fat: fat,
+        carbs: carbs
       });
       saveDiary(diary);
 
