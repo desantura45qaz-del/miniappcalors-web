@@ -461,7 +461,7 @@
     });
 
     // =============================
-    // Калькулятор калорий
+    // Калькулятор калорий + БЖУ
     // =============================
     const btnCalc = document.getElementById('btnCalc');
     const resultEl = document.getElementById('calcResult');
@@ -489,11 +489,21 @@
       const deficit = Math.round(maintain * 0.8);
       const surplus = Math.round(maintain * 1.1);
 
+      // Ориентировочные БЖУ на поддержание
+      const proteinG = Math.round(weight * 1.6);   // г белка / кг
+      const fatG = Math.round(weight * 0.8);       // г жира / кг
+      let carbsG = Math.round((maintain - proteinG * 4 - fatG * 9) / 4);
+      if (carbsG < 0) carbsG = 0;
+
       resultEl.style.display = 'block';
       resultEl.innerHTML = `
         <div><strong>Поддержание:</strong> ~ ${maintain} ккал/день</div>
         <div style="margin-top:6px;">Для снижения веса (−20%): ~ ${deficit} ккал/день</div>
         <div style="margin-top:6px;">Для набора (+10%): ~ ${surplus} ккал/день</div>
+        <div class="hint" style="margin-top:10px;">
+          <strong>Ориентировочные БЖУ на поддержание:</strong><br/>
+          Белки: ${proteinG} г/день • Жиры: ${fatG} г/день • Углеводы: ${carbsG} г/день
+        </div>
       `;
     });
 
@@ -715,17 +725,17 @@
         actions.style.display = 'flex';
         actions.style.gap = '8px';
 
-        const btnDelete = document.createElement('button');
-        btnDelete.className = 'btn-small btn-danger';
-        btnDelete.textContent = 'Удалить';
-        btnDelete.addEventListener('click', function () {
+        const btnDeleteCard = document.createElement('button');
+        btnDeleteCard.className = 'btn-small btn-danger';
+        btnDeleteCard.textContent = 'Удалить';
+        btnDeleteCard.addEventListener('click', function () {
           if (!confirm('Удалить карточку блюда?')) return;
           const updated = loadCards().filter(function (x) { return x.id !== card.id; });
           saveCards(updated);
           renderCards();
         });
 
-        actions.appendChild(btnDelete);
+        actions.appendChild(btnDeleteCard);
         wrap.appendChild(actions);
 
         cardsListEl.appendChild(wrap);
