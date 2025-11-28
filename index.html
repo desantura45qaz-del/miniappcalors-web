@@ -776,7 +776,7 @@
     });
 
     // =============================
-    // Дневник питания (localStorage) с БЖУ
+    // Дневник питания (localStorage) с БЖУ + удаление записей
     // =============================
     const STORAGE_DIARY_KEY = 'devickaya_diary_v1';
     const diaryListEl = document.getElementById('diaryList');
@@ -904,6 +904,26 @@
         }
 
         wrap.appendChild(line);
+
+        // Кнопка удаления записи
+        const actions = document.createElement('div');
+        actions.style.marginTop = '8px';
+        actions.style.display = 'flex';
+        actions.style.gap = '8px';
+
+        const btnDeleteEntry = document.createElement('button');
+        btnDeleteEntry.className = 'btn-small btn-danger';
+        btnDeleteEntry.textContent = 'Удалить запись';
+        btnDeleteEntry.addEventListener('click', function () {
+          if (!confirm('Удалить этот приём пищи?')) return;
+          const updated = loadDiary().filter(function (x) { return x.id !== entry.id; });
+          saveDiary(updated);
+          renderDiary();
+        });
+
+        actions.appendChild(btnDeleteEntry);
+        wrap.appendChild(actions);
+
         diaryListEl.appendChild(wrap);
       });
 
