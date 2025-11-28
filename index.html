@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Devickaya — тест JS</title>
+  <title>Devickaya — Калькулятор калорий & дневник (шаг 1)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -45,6 +45,7 @@
       box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
     }
 
+    /* Header */
     .header {
       display: flex;
       gap: 12px;
@@ -114,6 +115,7 @@
       color: var(--text-muted);
     }
 
+    /* Tabs */
     .tabs {
       margin-top: 4px;
       display: flex;
@@ -150,6 +152,7 @@
       display: block;
     }
 
+    /* Inputs */
     .field {
       display: flex;
       flex-direction: column;
@@ -170,6 +173,12 @@
       border: 1px solid var(--border);
       color: var(--text-main);
       font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
     }
 
     .btn {
@@ -193,12 +202,19 @@
       margin-top: 14px;
       font-size: 13px;
     }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
   </style>
 </head>
 
 <body>
 <div class="app">
   <div class="card">
+    <!-- HEADER -->
     <div class="header">
       <div class="brand-logo-wrapper">
         <img src="brand-logo-devickaya.png" alt="Devickaya" />
@@ -210,51 +226,77 @@
         </div>
         <h1>Калькулятор калорий & дневник</h1>
         <div class="header-subtitle">
-          Тест JS: вкладки и расчёт
+          Шаг 1 — рабочий калькулятор, вкладки уже живые
         </div>
       </div>
       <div class="chip-beta">beta</div>
     </div>
 
+    <!-- TABS -->
     <div class="tabs">
       <button class="tab-btn active" data-tab="calc">Калькулятор</button>
       <button class="tab-btn" data-tab="cards">Карточки</button>
       <button class="tab-btn" data-tab="diary">Дневник</button>
     </div>
 
+    <!-- TAB: КАЛЬКУЛЯТОР -->
     <div id="tab-calc" class="tab active">
+      <div class="field">
+        <label>Пол</label>
+        <select id="gender">
+          <option value="female">Женщина</option>
+          <option value="male">Мужчина</option>
+        </select>
+      </div>
+
       <div class="field">
         <label>Возраст</label>
         <input id="age" type="number" placeholder="30" />
       </div>
+
       <div class="field">
         <label>Рост (см)</label>
         <input id="height" type="number" placeholder="170" />
       </div>
+
       <div class="field">
         <label>Вес (кг)</label>
         <input id="weight" type="number" placeholder="60" />
       </div>
-      <button class="btn" id="btnCalc">Рассчитать (тест)</button>
-      <div id="calcResult"></div>
+
+      <div class="field">
+        <label>Уровень активности</label>
+        <select id="activity">
+          <option value="1.2">Минимальная (сидячая)</option>
+          <option value="1.375">Лёгкая (1–3 тренировки в неделю)</option>
+          <option value="1.55">Средняя (3–5 тренировки)</option>
+          <option value="1.725">Высокая (6–7 тренировки)</option>
+        </select>
+      </div>
+
+      <button class="btn" id="btnCalc">Рассчитать норму</button>
+
+      <div id="calcResult" class="result-card" style="display:none;"></div>
     </div>
 
+    <!-- TAB: КАРТОЧКИ (пока заглушка) -->
     <div id="tab-cards" class="tab">
-      <p style="font-size:13px;color:var(--text-muted);margin-top:0;">
-        Это тестовая вкладка "Карточки". Если вы её видите при переключении — JS работает.
+      <p class="hint">
+        Здесь позже появятся карточки блюд с БЖУ и подключением твоей базы.
       </p>
     </div>
 
+    <!-- TAB: ДНЕВНИК (пока заглушка) -->
     <div id="tab-diary" class="tab">
-      <p style="font-size:13px;color:var(--text-muted);margin-top:0;">
-        Это тестовая вкладка "Дневник". Если вы её видите при переключении — JS работает.
+      <p class="hint">
+        Здесь позже будет дневник питания с сохранением в localStorage по дням.
       </p>
     </div>
   </div>
 </div>
 
 <script>
-  // Всё заворачиваем в DOMContentLoaded, чтобы точно дождаться разметки
+  // Ждём, пока загрузится DOM
   document.addEventListener('DOMContentLoaded', function () {
     // Переключение вкладок
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -275,27 +317,38 @@
       });
     });
 
-    // Тестовый расчёт калорий
+    // Полный калькулятор калорий (Mifflin-St Jeor)
     const btnCalc = document.getElementById('btnCalc');
     const resultEl = document.getElementById('calcResult');
 
     btnCalc.addEventListener('click', function () {
+      const gender = document.getElementById('gender').value;
       const age = parseFloat(document.getElementById('age').value || '0');
       const height = parseFloat(document.getElementById('height').value || '0');
       const weight = parseFloat(document.getElementById('weight').value || '0');
+      const activity = parseFloat(document.getElementById('activity').value || '1.2');
 
       if (!age || !height || !weight) {
-        alert('Заполните возраст, рост и вес (тест)');
+        alert('Заполните возраст, рост и вес');
         return;
       }
 
-      // Простая тестовая формула
-      const calories = Math.round(weight * 24);
+      let bmr;
+      if (gender === 'male') {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
+
+      const maintain = Math.round(bmr * activity);
+      const deficit = Math.round(maintain * 0.8);
+      const surplus = Math.round(maintain * 1.1);
+
+      resultEl.style.display = 'block';
       resultEl.innerHTML = `
-        <div class="result-card">
-          <div>Тестовый расчёт выполнен ✅</div>
-          <div style="margin-top:4px;">Около <strong>${calories} ккал</strong> в день</div>
-        </div>
+        <div><strong>Поддержание:</strong> ~ ${maintain} ккал/день</div>
+        <div style="margin-top:6px;">Для снижения веса (−20%): ~ ${deficit} ккал/день</div>
+        <div style="margin-top:6px;">Для набора (+10%): ~ ${surplus} ккал/день</div>
       `;
     });
   });
