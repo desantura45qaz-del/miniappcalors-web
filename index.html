@@ -1013,6 +1013,23 @@
       renderDiary();
     });
 
+    // === НОВОЕ: автоподстановка порции из карточки в дневник ===
+    (function initPortionAutoFill() {
+      const mealDishSelect = document.getElementById('mealDishSelect');
+      const mealPortionInput = document.getElementById('mealPortion');
+      if (!mealDishSelect || !mealPortionInput) return;
+
+      mealDishSelect.addEventListener('change', function () {
+        const id = mealDishSelect.value;
+        if (!id) return;
+        const cards = loadCards();
+        const card = cards.find(function (x) { return x.id === id; });
+        if (card && card.w) {
+          mealPortionInput.value = card.w;
+        }
+      });
+    })();
+
     // Инициализация даты/времени + фильтра по дате
     (function initDateTimeAndFilter() {
       const dateInput = document.getElementById('mealDate');
@@ -1068,18 +1085,18 @@
 
     if (btnDiaryYesterday) {
       btnDiaryYesterday.addEventListener('click', function () {
-        const now = new Date();
-        now.setDate(now.getDate() - 1);
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const yestStr = yyyy + '-' + mm + '-' + dd;
+      const now = new Date();
+      now.setDate(now.getDate() - 1);
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const yestStr = yyyy + '-' + mm + '-' + dd;
 
-        diaryFilterMode = 'day';
-        diaryFilterDate = yestStr;
-        if (diaryFilterDateInput) diaryFilterDateInput.value = yestStr;
-        renderDiary();
-      });
+      diaryFilterMode = 'day';
+      diaryFilterDate = yestStr;
+      if (diaryFilterDateInput) diaryFilterDateInput.value = yestStr;
+      renderDiary();
+    });
     }
 
     if (btnDiaryAll) {
